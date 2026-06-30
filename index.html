@@ -1139,24 +1139,63 @@
         document.body.appendChild(bd); } }
     else if(bd){ bd.parentNode&&bd.parentNode.removeChild(bd); }
   }
-  function go(){
-    if(!document.head) return false;
-    if(document.getElementById("cardcenter-css")) return true;
-    var rules = SEL.split(",").map(function(s){ return s.trim(); }).join(",");
-    document.head.insertAdjacentHTML("beforeend",'<style id="cardcenter-css">'
+  var rules = SEL.split(",").map(function(s){ return s.trim(); }).join(",");
+  var STYLE='<style id="cardcenter-css">'
       + rules + '{position:fixed!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;'
       + 'width:min(680px,94vw)!important;max-height:86vh!important;overflow:auto!important;margin:0!important;'
       + 'z-index:2147483000!important;box-shadow:0 40px 90px rgba(0,0,0,.5)!important;animation:cardpop .16s ease}'
       + '@keyframes cardpop{from{opacity:.4;transform:translate(-50%,-48%)}to{opacity:1;transform:translate(-50%,-50%)}}'
       + '#lifeos-cardback{position:fixed;inset:0;background:rgba(8,14,26,.5);backdrop-filter:blur(2px);z-index:2147482999;animation:cbk .16s ease}'
       + '@keyframes cbk{from{opacity:0}to{opacity:1}}'
-      + '</style>');
-    document.addEventListener("click", function(){ setTimeout(sync,20); }, true);
-    document.addEventListener("keydown", function(e){ if(e.key==="Escape"){ var c=openCard(); if(c){ var h=c.querySelector('[class$="-head"]')||c.firstElementChild||c; try{ h.click(); }catch(x){} setTimeout(sync,30); } } });
-    setInterval(sync, 500);
-    return true;
+      + '</style>';
+  // Inject only AFTER the app has unpacked (gate on a post-unpack global), and re-inject if the
+  // bundler's replaceWith wipes our style. Wire listeners once via a window guard that survives unpack.
+  function go(){
+    if(!document.head || !(window.LifeRegister||window.UI||window.Store)) return false;
+    if(!document.getElementById("cardcenter-css")) document.head.insertAdjacentHTML("beforeend", STYLE);
+    if(!window.__cardcenterWired){
+      window.__cardcenterWired=true;
+      document.addEventListener("click", function(){ setTimeout(sync,20); }, true);
+      document.addEventListener("keydown", function(e){ if(e.key==="Escape"){ var c=openCard(); if(c){ var h=c.querySelector('[class$="-head"]')||c.firstElementChild||c; try{ h.click(); }catch(x){} setTimeout(sync,30); } } });
+      setInterval(sync, 500);
+    }
+    return false; // keep polling so the style is re-added after unpack
   }
-  var n=0, iv=setInterval(function(){ n++; if(go()||n>400) clearInterval(iv); },40);
+  var iv=setInterval(go,50); setTimeout(function(){ clearInterval(iv); }, 60000);
+  if(document.readyState!=="loading") go();
+})();
+
+/* ---------- 23. Theme port: add Lake Tahoe / Reef / Sunny Beach / Desert Night ---------- */
+(function(){
+  var LIGHT="--bg:#fafafb;--bg-1:#f1f1f5;--bg-2:#ffffff;--bg-3:#f5f5f9;--fg:#20222e;--fg-1:#2a2c3a;--fg-2:#54586b;--fg-3:#888ba0;--fg-4:#b4b7c6;--line-1:#ecedf3;--line-2:#dcdee8;--on-accent:#ffffff;--gold:#b07d18;--cool:#0e8aa6;--good:#21a366;--warn:#e08a1e;--bad:#e0394f;--dim:#b4b7c6;--veil:rgba(255,255,255,.82);--chrome-fg:#f5f4fb;--chrome-fg2:#c6c6dd;--chrome-fg3:#9b9cb8;--chrome-fg4:#7a7c98;--chrome-line:rgba(255,255,255,.10);--chrome-hover:rgba(255,255,255,.08);--chrome-brand:#ffffff;--shadow:0 1px 2px rgba(30,20,60,.045),0 4px 12px rgba(40,30,90,.05),0 16px 38px rgba(40,30,90,.07);";
+  var CSS=
+    '[data-theme="tahoe"]{'+LIGHT+'--accent:#0076bc;--accent-h:#005e96;--accent-soft:rgba(0,118,188,.12);--line-3:rgba(2,160,133,.40);--chrome-bg:#0a3a5c;--bg:#eef5fb;--cool:#02a085}'
+   +'[data-theme="reef"]{'+LIGHT+'--accent:#743dbc;--accent-h:#5d2f99;--accent-soft:rgba(116,61,188,.12);--line-3:rgba(255,167,0,.42);--chrome-bg:#3b0862;--bg:#f6f1fc;--cool:#05969f}'
+   +'[data-theme="sunny"]{'+LIGHT+'--accent:#f59e0b;--accent-h:#d97706;--accent-soft:rgba(245,158,11,.14);--line-3:rgba(6,182,212,.40);--chrome-bg:#0e7490;--bg:#fffdf3;--cool:#06b6d4;--gold:#d97706}'
+   +'[data-theme="desertnight"]{--bg:#00091e;--bg-1:#011635;--bg-2:#06224a;--bg-3:#0d3863;--fg:#f3f5fb;--fg-1:#e8edf7;--fg-2:#c9d3e4;--fg-3:#7c8fb1;--fg-4:#3f5476;--line-1:#0d3863;--line-2:#18436d;--on-accent:#1a0e06;--accent:#ee8a4c;--accent-h:#d96535;--accent-soft:rgba(238,138,76,.16);--line-3:rgba(192,138,82,.40);--chrome-bg:#011635;--chrome-fg:#f3f5fb;--chrome-fg2:#c9d3e4;--chrome-fg3:#7c8fb1;--chrome-fg4:#3f5476;--chrome-line:rgba(255,255,255,.08);--chrome-hover:rgba(255,255,255,.06);--chrome-brand:#f3f5fb;--gold:#c08a52;--cool:#7c8fb1;--good:#5fb98a;--warn:#ee8a4c;--bad:#ea6e6e;--dim:#3f5476;--veil:rgba(0,9,30,.82);--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5)}';
+  var MY=[{id:"tahoe",name:"Lake Tahoe",sw:["#eef5fb","#0a3a5c","#0076bc","#02a085"]},
+          {id:"reef",name:"Reef",sw:["#f6f1fc","#3b0862","#743dbc","#ffa700"]},
+          {id:"sunny",name:"Sunny Beach",sw:["#fffdf3","#0e7490","#f59e0b","#06b6d4"]},
+          {id:"desertnight",name:"Desert Night",sw:["#00091e","#06224a","#ee8a4c","#c08a52"]}];
+  function cur(){ try{ return (window.LifeOS&&LifeOS.get().profile&&LifeOS.get().profile.theme)||""; }catch(e){ return ""; } }
+  function injectCss(){ if(document.head && !document.getElementById("xthemes-css")) document.head.insertAdjacentHTML("beforeend",'<style id="xthemes-css">'+CSS+'</style>'); }
+  function fill(){
+    injectCss();
+    var g=document.getElementById("theme-grid");
+    if(g && !g.querySelector('[data-th="tahoe"]')){
+      var c=cur();
+      g.insertAdjacentHTML("beforeend", MY.map(function(t){ return '<div class="theme-card'+(c===t.id?" on":"")+'" role="button" tabindex="0" data-th="'+t.id+'"><div class="sw">'+t.sw.map(function(x){return '<i style="background:'+x+'"></i>';}).join("")+'</div><b style="font-size:13px">'+t.name+'</b></div>'; }).join(""));
+      g.querySelectorAll('.theme-card[data-th]').forEach(function(el){ if(el.__xw)return; if(MY.some(function(m){return m.id===el.dataset.th;})){ el.__xw=true; el.onclick=function(){ try{ if(window.Theme)Theme.apply(el.dataset.th); }catch(e){} setTimeout(function(){ try{ if(window.Theme&&Theme.renderPicker)Theme.renderPicker(); }catch(e){} fill(); },0); }; } });
+    }
+    var rg=document.querySelector('#rail-theme .rt-grid');
+    if(rg && !rg.querySelector('[data-id="tahoe"]')){
+      var c2=cur();
+      rg.insertAdjacentHTML("beforeend", MY.map(function(t){ return '<button class="rt-sw'+(c2===t.id?" on":"")+'" data-id="'+t.id+'" title="'+t.name+'"><span class="rt-chips"><i style="background:'+t.sw[0]+'"></i><i style="background:'+t.sw[2]+'"></i><i style="background:'+t.sw[3]+'"></i></span><b>'+t.name+'</b></button>'; }).join(""));
+      rg.querySelectorAll('.rt-sw[data-id]').forEach(function(b){ if(b.__xw)return; if(MY.some(function(m){return m.id===b.dataset.id;})){ b.__xw=true; b.onclick=function(){ try{ if(window.Theme)Theme.apply(b.dataset.id); }catch(e){} }; } });
+    }
+  }
+  function go(){ if(!(window.Theme||window.LifeOS)) return false; fill(); if(!window.__xthemes){ window.__xthemes=true; setInterval(fill,600); document.addEventListener("click",function(){ setTimeout(fill,60); },true); } return false; }
+  var n=0, iv=setInterval(function(){ n++; if(go()||n>600) clearInterval(iv); },50);
   if(document.readyState!=="loading") go();
 })();
 
