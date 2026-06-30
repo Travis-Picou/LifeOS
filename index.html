@@ -1177,7 +1177,16 @@
           {id:"reef",name:"Reef",sw:["#f6f1fc","#3b0862","#743dbc","#ffa700"]},
           {id:"sunny",name:"Sunny Beach",sw:["#fffdf3","#0e7490","#f59e0b","#06b6d4"]},
           {id:"desertnight",name:"Desert Night",sw:["#00091e","#06224a","#ee8a4c","#c08a52"]}];
+  var MYIDS=MY.map(function(m){return m.id;});
   function cur(){ try{ return (window.LifeOS&&LifeOS.get().profile&&LifeOS.get().profile.theme)||""; }catch(e){ return ""; } }
+  // Apply a custom theme by setting data-theme directly (the app's Theme.apply rejects unknown ids).
+  function applyMine(id){
+    try{ document.documentElement.setAttribute("data-theme", id); }catch(e){}
+    try{ if(window.ZoneTheme){ ["top","rail","center","ai"].forEach(function(z){ window.ZoneTheme.apply(z, id); }); } }catch(e){}
+    try{ var s=LifeOS.get(); s.profile.theme=id; LifeOS.set(s); }catch(e){}
+    try{ localStorage.setItem("lifeos.xtheme", id); }catch(e){}
+  }
+  function clearMine(){ try{ localStorage.removeItem("lifeos.xtheme"); }catch(e){} }
   function injectCss(){ if(document.head && !document.getElementById("xthemes-css")) document.head.insertAdjacentHTML("beforeend",'<style id="xthemes-css">'+CSS+'</style>'); }
   function fill(){
     injectCss();
@@ -1185,17 +1194,18 @@
     if(g && !g.querySelector('[data-th="tahoe"]')){
       var c=cur();
       g.insertAdjacentHTML("beforeend", MY.map(function(t){ return '<div class="theme-card'+(c===t.id?" on":"")+'" role="button" tabindex="0" data-th="'+t.id+'"><div class="sw">'+t.sw.map(function(x){return '<i style="background:'+x+'"></i>';}).join("")+'</div><b style="font-size:13px">'+t.name+'</b></div>'; }).join(""));
-      g.querySelectorAll('.theme-card[data-th]').forEach(function(el){ if(el.__xw)return; if(MY.some(function(m){return m.id===el.dataset.th;})){ el.__xw=true; el.onclick=function(){ try{ if(window.Theme)Theme.apply(el.dataset.th); }catch(e){} setTimeout(function(){ try{ if(window.Theme&&Theme.renderPicker)Theme.renderPicker(); }catch(e){} fill(); },0); }; } });
+      g.querySelectorAll('.theme-card[data-th]').forEach(function(el){ if(el.__xw)return; if(MYIDS.indexOf(el.dataset.th)>-1){ el.__xw=true; el.onclick=function(){ applyMine(el.dataset.th); setTimeout(function(){ try{ if(window.Theme&&Theme.renderPicker)Theme.renderPicker(); }catch(e){} fill(); },0); }; } else if(!el.__xc){ el.__xc=true; el.addEventListener("click",function(){ clearMine(); }); } });
     }
     var rg=document.querySelector('#rail-theme .rt-grid');
     if(rg && !rg.querySelector('[data-id="tahoe"]')){
       var c2=cur();
       rg.insertAdjacentHTML("beforeend", MY.map(function(t){ return '<button class="rt-sw'+(c2===t.id?" on":"")+'" data-id="'+t.id+'" title="'+t.name+'"><span class="rt-chips"><i style="background:'+t.sw[0]+'"></i><i style="background:'+t.sw[2]+'"></i><i style="background:'+t.sw[3]+'"></i></span><b>'+t.name+'</b></button>'; }).join(""));
-      rg.querySelectorAll('.rt-sw[data-id]').forEach(function(b){ if(b.__xw)return; if(MY.some(function(m){return m.id===b.dataset.id;})){ b.__xw=true; b.onclick=function(){ try{ if(window.Theme)Theme.apply(b.dataset.id); }catch(e){} }; } });
+      rg.querySelectorAll('.rt-sw[data-id]').forEach(function(b){ if(b.__xw)return; if(MYIDS.indexOf(b.dataset.id)>-1){ b.__xw=true; b.onclick=function(){ applyMine(b.dataset.id); }; } else if(!b.__xc){ b.__xc=true; b.addEventListener("click",function(){ clearMine(); }); } });
     }
   }
-  function go(){ if(!(window.Theme||window.LifeOS)) return false; fill(); if(!window.__xthemes){ window.__xthemes=true; setInterval(fill,600); document.addEventListener("click",function(){ setTimeout(fill,60); },true); } return false; }
-  var n=0, iv=setInterval(function(){ n++; if(go()||n>600) clearInterval(iv); },50);
+  function restore(){ try{ var xt=localStorage.getItem("lifeos.xtheme"); if(xt && MYIDS.indexOf(xt)>-1){ if(document.documentElement.getAttribute("data-theme")!==xt) applyMine(xt); } }catch(e){} }
+  function go(){ if(!(window.Theme||window.LifeOS)) return false; injectCss(); restore(); fill(); if(!window.__xthemes){ window.__xthemes=true; setInterval(function(){ fill(); restore(); },600); document.addEventListener("click",function(){ setTimeout(fill,60); },true); } return false; }
+  var n=0, iv=setInterval(function(){ n++; if(go()||n>800) clearInterval(iv); },50);
   if(document.readyState!=="loading") go();
 })();
 
