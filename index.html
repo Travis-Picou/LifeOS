@@ -1128,6 +1128,38 @@
   if(document.readyState!=="loading") patch();
 })();
 
+/* ---------- 22. Universal expandable cards: open centered & static (not in-place) ---------- */
+(function(){
+  var SEL=".dcc.open,.ctc.open,.idc.open,.pjc.open,.prac-card.open,.oplr.open,.tkc.open,.exc.open,.gcard.open,.mvc.open,.hc.open,.mvi-card.open,.lr-card.open";
+  function openCard(){ try{ return document.querySelector(SEL); }catch(e){ return null; } }
+  function sync(){
+    var oc=openCard(); var bd=document.getElementById("lifeos-cardback");
+    if(oc){ if(!bd){ bd=document.createElement("div"); bd.id="lifeos-cardback";
+        bd.onclick=function(){ var c=openCard(); if(c){ var h=c.querySelector('[class$="-head"]')||c.firstElementChild||c; try{ h.click(); }catch(e){} } setTimeout(sync,30); };
+        document.body.appendChild(bd); } }
+    else if(bd){ bd.parentNode&&bd.parentNode.removeChild(bd); }
+  }
+  function go(){
+    if(!document.head) return false;
+    if(document.getElementById("cardcenter-css")) return true;
+    var rules = SEL.split(",").map(function(s){ return s.trim(); }).join(",");
+    document.head.insertAdjacentHTML("beforeend",'<style id="cardcenter-css">'
+      + rules + '{position:fixed!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important;'
+      + 'width:min(680px,94vw)!important;max-height:86vh!important;overflow:auto!important;margin:0!important;'
+      + 'z-index:2147483000!important;box-shadow:0 40px 90px rgba(0,0,0,.5)!important;animation:cardpop .16s ease}'
+      + '@keyframes cardpop{from{opacity:.4;transform:translate(-50%,-48%)}to{opacity:1;transform:translate(-50%,-50%)}}'
+      + '#lifeos-cardback{position:fixed;inset:0;background:rgba(8,14,26,.5);backdrop-filter:blur(2px);z-index:2147482999;animation:cbk .16s ease}'
+      + '@keyframes cbk{from{opacity:0}to{opacity:1}}'
+      + '</style>');
+    document.addEventListener("click", function(){ setTimeout(sync,20); }, true);
+    document.addEventListener("keydown", function(e){ if(e.key==="Escape"){ var c=openCard(); if(c){ var h=c.querySelector('[class$="-head"]')||c.firstElementChild||c; try{ h.click(); }catch(x){} setTimeout(sync,30); } } });
+    setInterval(sync, 500);
+    return true;
+  }
+  var n=0, iv=setInterval(function(){ n++; if(go()||n>400) clearInterval(iv); },40);
+  if(document.readyState!=="loading") go();
+})();
+
 </script>
 
   <div id="__bundler_thumbnail">
