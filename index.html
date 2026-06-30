@@ -1330,6 +1330,88 @@
   if(document.readyState!=="loading") patch();
 })();
 
+/* ---------- 26. Opportunities — top-level section (Roles + Business Cases) ---------- */
+(function(){
+  function st(){ try{ return window.LifeOS?window.LifeOS.get():{}; }catch(e){ return {}; } }
+  function save(s){ try{ if(window.LifeOS&&window.LifeOS.set) window.LifeOS.set(s); }catch(e){} }
+  var E=function(s){ return window.esc?window.esc(String(s==null?"":s)):String(s==null?"":s); };
+  var VC={Pursue:"#1f9d57","Lean in":"#2563c9",Watch:"#c2891b",Pass:"#888ba0"};
+  function money(n){ n=+n||0; var a=Math.abs(n); if(a>=1e9)return "$"+(n/1e9).toFixed(1)+"B"; if(a>=1e6)return "$"+(n/1e6).toFixed(1)+"M"; if(a>=1e3)return "$"+Math.round(n/1e3)+"k"; return "$"+Math.round(n); }
+  window.LifeOSOpps={
+    tab:"roles",
+    setTab:function(t){ this.tab=t; this.render(); },
+    show:function(){
+      try{
+        document.querySelectorAll(".view").forEach(function(x){ x.classList.toggle("on", x.id==="view-surface"); });
+        document.querySelectorAll(".navbtn").forEach(function(b){ b.classList.toggle("on", b.dataset.view==="opportunities"); });
+        try{ location.hash="/opportunities"; }catch(e){}
+        var r=document.getElementById("rail"); if(r)r.classList.remove("open");
+      }catch(e){}
+      this.render();
+    },
+    openCase:function(id){
+      var bc=(st().businessCases||[]).find(function(x){return x.id===id;}); if(!bc)return; var m=bc.metrics||{}; var v=bc.value||{};
+      function row(k,val){ return '<span class="ls-k">'+E(k)+'</span><span class="ls-v">'+val+'</span>'; }
+      var head='<div class="ls-kv">'
+        +row("NPV (base)", '<b style="color:#1f9d57">'+money(m.npvBase)+'</b>')
+        +row("IRR", (m.irr!=null?m.irr+'%':'—'))
+        +row("Payback", (m.paybackYear!=null?('Year '+m.paybackYear):'—'))
+        +row("ROI ("+(bc.horizon||5)+"y)", (m.roi!=null?m.roi+'×':'—'))
+        +row("Yr"+(bc.horizon||5)+" revenue", money(m.yr5ARR))
+        +row("Investment", money(bc.investment))+'</div>';
+      var scen=(m.npvBest!=null||m.npvWorst!=null)?'<div class="ls-sec"><div class="ls-st">Scenarios (NPV)</div><div class="bc-scen"><div><b style="color:#1f9d57">'+money(m.npvBest)+'</b><span>Best</span></div><div><b>'+money(m.npvBase)+'</b><span>Base</span></div><div><b style="color:#e0394f">'+money(m.npvWorst)+'</b><span>Worst</span></div></div></div>':'';
+      var val=(v.evc!=null)?'<div class="ls-sec"><div class="ls-st">Value & price</div><div class="ls-kv">'+row("EVC / unit / yr", money(v.evc))+row("Reference (next-best)", money(v.referenceValue))+row("Value-capture", (v.captureRate!=null?Math.round(v.captureRate*100)+'%':'—'))+row("Blended ACV", money(v.blendedACV))+'</div></div>':'';
+      var meta='<div class="ls-sec"><div class="ls-st">Model</div><div class="ls-kv">'+row("Segments", (bc.segments!=null?bc.segments:'—'))+row("Horizon", (bc.horizon||5)+' yrs')+row("Discount rate", (bc.discountRate!=null?Math.round(bc.discountRate*100)+'%':'—'))+row("Assumptions logged", (bc.assumptionsCount!=null?bc.assumptionsCount:'—'))+'</div></div>';
+      var act='<div class="ls-act">'+(bc.link?'<button class="btn small" onclick="window.open('+JSON.stringify(bc.link)+',\'_blank\')">Open calculator</button>':'')+'<button class="btn ghost small" onclick="LifeSheet.close()">Close</button></div>';
+      if(window.LifeSheet) window.LifeSheet.open(E(bc.title), head+scen+val+meta+act, "#6048d6");
+    },
+    render:function(){
+      var el=document.getElementById("view-surface"); if(!el) return; var s=st();
+      var opps=(s.career&&s.career.opportunities)||[]; var cases=s.businessCases||[];
+      var head='<div class="surf-head" style="--c:#6048d6"><div class="surf-bar"></div><div><p class="eyebrow" style="color:#6048d6">Opportunities</p><h1>Opportunities</h1></div></div>';
+      var tabs='<div class="mseg" style="margin-bottom:18px"><button class="mseg-b'+(this.tab==="roles"?" on":"")+'" onclick="LifeOSOpps.setTab(\'roles\')">Roles <span class="mini">'+opps.length+'</span></button><button class="mseg-b'+(this.tab==="cases"?" on":"")+'" onclick="LifeOSOpps.setTab(\'cases\')">Business Cases <span class="mini">'+cases.length+'</span></button></div>';
+      var body;
+      if(this.tab==="cases"){
+        if(!cases.length){ body='<div class="lr-empty2">No business cases yet. Each business case you build is added here automatically.</div>'; }
+        else { body='<div class="opp-grid">'+cases.map(function(b){ var m=b.metrics||{}; var pos=(m.npvBase||0)>0;
+            return '<div class="bc-card" style="--c:#6048d6" onclick="LifeOSOpps.openCase(\''+b.id+'\')"><div class="bc-h"><div><b>'+E(b.title)+'</b><span>'+E(b.subtitle||"")+'</span></div><span class="bc-vd" style="background:color-mix(in srgb,'+(pos?"#1f9d57":"#e0394f")+' 14%,transparent);color:'+(pos?"#1f9d57":"#e0394f")+'">'+(pos?"Positive":"Underwater")+'</span></div>'
+            +'<div class="bc-stats"><div><b style="color:#1f9d57">'+money(m.npvBase)+'</b><span>NPV</span></div><div><b>'+(m.irr!=null?m.irr+"%":"—")+'</b><span>IRR</span></div><div><b>'+(m.paybackYear!=null?("Y"+m.paybackYear):"—")+'</b><span>Payback</span></div><div><b>'+(m.roi!=null?m.roi+"×":"—")+'</b><span>ROI</span></div></div></div>'; }).join("")+'</div>'; }
+      } else {
+        var verds=["Pursue","Lean in","Watch","Pass"]; var cnt={}; verds.forEach(function(k){cnt[k]=0;}); opps.forEach(function(o){ if(cnt[o.verdict]!=null)cnt[o.verdict]++; });
+        var filt='<div class="opp-filt">'+verds.map(function(k){ return '<span class="opp-fp" style="--c:'+VC[k]+'">'+E(k)+' '+cnt[k]+'</span>'; }).join("")+'</div>';
+        if(!opps.length){ body=filt+'<div class="lr-empty2">No opportunities yet.</div>'; }
+        else { var rows=opps.slice().sort(function(a,b){return (+b.fit||0)-(+a.fit||0);}).map(function(o){ var col=VC[o.verdict]||"#0e8aa6";
+            return '<div class="bc-card" style="--c:'+col+'" onclick="CareerEngine.openOpp(\''+o.id+'\')"><div class="bc-h"><div><b>'+E(o.role||"")+'</b><span>'+E(o.company||"")+(o.location?(" · "+E(o.location)):"")+'</span></div><div class="opp-fit" style="color:'+col+'">'+(+o.fit||0)+'<small>fit</small></div></div><div class="bc-h" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line-1)"><span class="bc-vd" style="background:color-mix(in srgb,'+col+' 14%,transparent);color:'+col+'">'+E(o.verdict||"Identified")+'</span><span style="font-size:11.5px;color:var(--fg-3)">'+E(o.stage||"")+(o.comp&&o.comp!=="—"?(" · "+E(o.comp)):"")+'</span></div></div>'; }).join("");
+          body=filt+'<div class="opp-grid">'+rows+'</div>'; }
+      }
+      el.innerHTML=head+tabs+body;
+    }
+  };
+  function injectNav(){
+    if(document.querySelector('.navbtn[data-view="opportunities"]')) return true;
+    var career=document.querySelector('.navbtn[data-view="career"]'); if(!career) return false;
+    var b=document.createElement("button"); b.className="navbtn"; b.setAttribute("data-view","opportunities"); b.setAttribute("style","--c:#6048d6"); b.textContent="Opportunities";
+    career.parentNode.insertBefore(b, career);
+    b.addEventListener("click", function(ev){ ev.stopImmediatePropagation(); ev.preventDefault(); window.LifeOSOpps.show(); }, true);
+    return true;
+  }
+  function css(){ if(document.getElementById("opps-css")||!document.head) return; document.head.insertAdjacentHTML("beforeend",'<style id="opps-css">'
+    +'.opp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}@media(max-width:780px){.opp-grid{grid-template-columns:1fr}}'
+    +'.bc-card{border:1px solid var(--line-1);border-left:3px solid var(--c);border-radius:14px;background:var(--bg-2);box-shadow:var(--e-1);padding:15px 16px;cursor:pointer;transition:transform .14s,box-shadow .14s}.bc-card:hover{transform:translateY(-2px);box-shadow:var(--e-2)}'
+    +'.bc-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.bc-h b{font-size:14.5px;color:var(--fg-1);display:block}.bc-h span{font-size:12px;color:var(--fg-3)}'
+    +'.bc-vd{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:999px;white-space:nowrap;align-self:flex-start}'
+    +'.opp-fit{font-family:var(--display);font-size:24px;font-weight:800;flex:none;line-height:1}.opp-fit small{font-size:10px;font-weight:600;display:block;color:var(--fg-4)}'
+    +'.bc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:13px;padding-top:12px;border-top:1px solid var(--line-1)}.bc-stats>div{text-align:center}.bc-stats b{font-family:var(--display);font-size:16px;font-weight:700;color:var(--fg-1);display:block}.bc-stats span{font-family:var(--mono);font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-4)}'
+    +'.opp-filt{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.opp-fp{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--c);border:1px solid color-mix(in srgb,var(--c) 40%,transparent);border-radius:999px;padding:4px 11px}'
+    +'.bc-scen{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}.bc-scen>div{border:1px solid var(--line-1);border-radius:10px;padding:9px;background:var(--bg-2)}.bc-scen b{font-family:var(--display);font-size:16px;display:block}.bc-scen span{font-size:10px;color:var(--fg-4);text-transform:uppercase;letter-spacing:.06em}'
+    +'</style>'); }
+  function go(){ if(!(window.LifeOS||document.getElementById("rail"))) return false; css(); injectNav();
+    if(!window.__oppsHash){ window.__oppsHash=true; window.addEventListener("hashchange",function(){ if(location.hash==="#/opportunities"){ window.LifeOSOpps.show(); } }); setTimeout(function(){ if(location.hash==="#/opportunities") window.LifeOSOpps.show(); },400); }
+    return false; }
+  var iv=setInterval(go,60); setTimeout(function(){ clearInterval(iv); }, 30000);
+  if(document.readyState!=="loading") go();
+})();
+
 </script>
 
   <div id="__bundler_thumbnail">
