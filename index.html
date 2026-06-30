@@ -1275,6 +1275,61 @@
   if(document.readyState!=="loading") patch();
 })();
 
+/* ---------- 25. Career Home upgrade: pipeline funnel + top-3 + checklist + résumé export ---------- */
+(function(){
+  function st(){ try{ return window.LifeOS?window.LifeOS.get():{}; }catch(e){ return {}; } }
+  function save(s){ try{ if(window.LifeOS&&window.LifeOS.set) window.LifeOS.set(s); }catch(e){} }
+  var E=function(s){ return window.esc?window.esc(String(s==null?"":s)):String(s==null?"":s); };
+  var DEFAULT_CHECK=["Refresh LinkedIn headline & 'Open to work'","Tailor résumé for the top role","Reach out to 1 connection per week","Apply to 2 roles this week","Prep 3 STAR stories","Research comp for target roles"];
+  function download(name,content,mime){ try{ var b=new Blob([content],{type:mime}); var u=URL.createObjectURL(b); var a=document.createElement("a"); a.href=u; a.download=name; (document.body||document.documentElement).appendChild(a); a.click(); setTimeout(function(){ try{URL.revokeObjectURL(u);a.remove();}catch(e){} },120); }catch(e){} }
+  function patch(){
+    if(!window.CareerEngine || window.CareerEngine.__home2) return false;
+    var C=window.CareerEngine; if(typeof C.renderHome!=="function") return false; C.__home2=true;
+    var VC={Pursue:"#1f9d57","Lean in":"#2563c9",Watch:"#c2891b",Pass:"#888ba0"};
+    C.toggleJobCheck=function(i){ var s=st(); s.career=s.career||{}; var ck=s.career.jobChecklist||{}; ck[i]=!ck[i]; s.career.jobChecklist=ck; save(s); };
+    C.exportResume=function(){ var c=this.d()||{}; var name=""; try{ name=(LifeOS.get().profile&&LifeOS.get().profile.name)||"Travis Picou"; }catch(e){ name="Travis Picou"; }
+      function esc(x){ return E(x); }
+      var exp=(c.experience||[]).map(function(e){ return '<div class="r-job"><div class="r-jh"><b>'+esc(e.title||"")+'</b><span>'+esc((e.start||"")+(e.end?(" – "+e.end):""))+'</span></div><div class="r-co">'+esc(e.company||"")+(e.location?(" · "+esc(e.location)):"")+'</div>'+((e.bullets||[]).length?'<ul>'+e.bullets.map(function(b){return '<li>'+esc(b)+'</li>';}).join("")+'</ul>':"")+'</div>'; }).join("");
+      var edu=(c.education||[]).map(function(d){ return '<div class="r-edu"><b>'+esc(d.school||"")+'</b> — '+esc(d.degree||"")+(d.year?(" ("+esc(d.year)+")"):"")+'</div>'; }).join("");
+      var awards=(c.awards||[]).map(function(a){ return '<li>'+esc(a.title||"")+(a.org?(" — "+esc(a.org)):"")+(a.year?(", "+esc(a.year)):"")+'</li>'; }).join("");
+      var skills=(c.skills||[]).map(esc).join(" · ");
+      var html='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(name)+" — Résumé"+'</title><style>'
+        +'body{font:13px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;color:#1a1a1a;max-width:820px;margin:32px auto;padding:0 28px}'
+        +'h1{font-size:26px;margin:0 0 2px}.r-head{font-size:13px;color:#444;margin:0 0 4px}.r-sum{margin:10px 0 18px;color:#222}'
+        +'h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#0e6ba8;border-bottom:1px solid #ddd;padding-bottom:4px;margin:18px 0 10px}'
+        +'.r-job{margin:0 0 12px}.r-jh{display:flex;justify-content:space-between;font-size:14px}.r-jh span{color:#666;font-size:12px}.r-co{color:#0e6ba8;font-size:12.5px;margin:1px 0 4px}'
+        +'ul{margin:4px 0 0 18px;padding:0}li{margin:2px 0}.r-edu{margin:2px 0}@media print{body{margin:0}}'
+        +'</style></head><body><h1>'+esc(name)+'</h1>'+(c.headline?'<p class="r-head">'+esc(c.headline)+'</p>':"")+(c.summary?'<p class="r-sum">'+esc(c.summary)+'</p>':"")
+        +(exp?'<h2>Experience</h2>'+exp:"")+(edu?'<h2>Education</h2>'+edu:"")+(skills?'<h2>Skills</h2><p>'+skills+'</p>':"")+(awards?'<h2>Awards & Honors</h2><ul>'+awards+'</ul>':"")
+        +'</body></html>';
+      download((name.replace(/\s+/g,"_"))+"_Resume.html", html, "text/html");
+    };
+    var _home=C.renderHome.bind(C);
+    C.renderHome=function(){ _home(); var el=document.getElementById("view-surface"); if(!el) return; var c=this.d()||{}; var opps=c.opportunities||[];
+      var counts={Pursue:0,"Lean in":0,Watch:0,Pass:0}; opps.forEach(function(o){ if(counts[o.verdict]!=null) counts[o.verdict]++; });
+      var funnel='<div class="ch-funnel">'+["Pursue","Lean in","Watch","Pass"].map(function(k){ return '<div class="ch-fn" style="--c:'+VC[k]+'"><div class="ch-fv">'+counts[k]+'</div><div class="ch-fl">'+E(k)+'</div></div>'; }).join("")+'</div>';
+      var top=opps.slice().filter(function(o){return o.verdict==="Pursue"||o.verdict==="Lean in";}).sort(function(a,b){return (+b.fit||0)-(+a.fit||0);}).slice(0,3);
+      var topCards=top.length?('<div class="ch-top">'+top.map(function(o){ var col=VC[o.verdict]||"#0e8aa6"; return '<div class="ch-card" style="--c:'+col+'" onclick="CareerEngine.openOpp(\''+o.id+'\')"><div class="ch-cf">'+(+o.fit||0)+'</div><div class="ch-cm"><b>'+E(o.role||"")+'</b><span>'+E(o.company||"")+(o.location?(" · "+E(o.location)):"")+'</span></div><span class="ch-cv" style="color:'+col+'">'+E(o.verdict||"")+'</span></div>'; }).join("")+'</div>'):'<div class="lr-empty2" style="margin-top:8px">No active opportunities — add roles in the Opportunities tab.</div>';
+      var ck=(c.jobChecklist)||{};
+      var checklist='<div class="ch-check">'+DEFAULT_CHECK.map(function(it){ var on=!!ck[it]; return '<label class="ch-ci'+(on?" on":"")+'"><input type="checkbox" '+(on?"checked":"")+' onchange="CareerEngine.toggleJobCheck('+JSON.stringify(it).replace(/"/g,"&quot;")+')"><span>'+E(it)+'</span></label>'; }).join("")+'</div>';
+      el.insertAdjacentHTML("beforeend",
+        '<div class="row" style="justify-content:space-between;align-items:center;margin:24px 0 10px;background:none;border:none;padding:0"><h2 class="sec" style="margin:0">Pipeline</h2><button class="btn ghost small" onclick="CareerEngine.exportResume()">↓ Download résumé</button></div>'
+        +funnel+'<h2 class="sec" style="margin:22px 0 10px">Top to pursue</h2>'+topCards
+        +'<h2 class="sec" style="margin:22px 0 10px">This week’s job-search checklist</h2>'+checklist);
+    };
+    if(!document.getElementById("chome-css")){ document.head.insertAdjacentHTML("beforeend",'<style id="chome-css">'
+      +'.ch-funnel{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.ch-fn{border:1px solid var(--line-1);border-top:3px solid var(--c);border-radius:12px;background:var(--bg-2);box-shadow:var(--e-1);padding:12px;text-align:center}.ch-fv{font-family:var(--display);font-size:24px;font-weight:800;color:var(--c)}.ch-fl{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-4)}'
+      +'.ch-top{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}@media(max-width:760px){.ch-top{grid-template-columns:1fr}.ch-funnel{grid-template-columns:repeat(2,1fr)}}'
+      +'.ch-card{display:flex;align-items:center;gap:12px;border:1px solid var(--line-1);border-left:3px solid var(--c);border-radius:13px;background:var(--bg-2);box-shadow:var(--e-1);padding:12px 14px;cursor:pointer;transition:transform .14s,box-shadow .14s}.ch-card:hover{transform:translateY(-2px);box-shadow:var(--e-2)}'
+      +'.ch-cf{font-family:var(--display);font-size:22px;font-weight:800;color:var(--c);flex:none}.ch-cm{flex:1;min-width:0}.ch-cm b{font-size:13.5px;color:var(--fg-1);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ch-cm span{font-size:11.5px;color:var(--fg-3)}.ch-cv{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}'
+      +'.ch-check{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}@media(max-width:680px){.ch-check{grid-template-columns:1fr}}.ch-ci{display:flex;align-items:center;gap:9px;border:1px solid var(--line-1);border-radius:11px;background:var(--bg-2);padding:10px 12px;cursor:pointer;font-size:13px;color:var(--fg-2)}.ch-ci.on{color:var(--fg-4);text-decoration:line-through}.ch-ci input{width:16px;height:16px;flex:none;accent-color:var(--accent)}'
+      +'</style>'); }
+    return true;
+  }
+  var n=0, iv=setInterval(function(){ n++; if(patch()||n>240) clearInterval(iv); },80);
+  if(document.readyState!=="loading") patch();
+})();
+
 </script>
 
   <div id="__bundler_thumbnail">
