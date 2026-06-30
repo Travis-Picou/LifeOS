@@ -49,7 +49,9 @@
   }
   function inject(){
     if(unlocked()) return true;
-    if(!document.body) return false;
+    // Wait for the app shell to exist so we inject onto the FINAL document
+    // (the bundler replaces the whole document during unpack, which would wipe an early overlay).
+    if(!document.body || !(document.getElementById("app")||document.getElementById("main")||window.Store)) return false;
     css();
     if(document.getElementById("lifeos-gate")) return true;
     var stored=null; try{ stored=localStorage.getItem(KEY); }catch(e){}
@@ -76,7 +78,7 @@
     [pw,pw2].forEach(function(el){ if(el) el.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); submit(); } }); });
     return true;
   }
-  var t=0, iv=setInterval(function(){ t++; if(inject()||t>600) clearInterval(iv); },25);
+  var t=0, iv=setInterval(function(){ t++; if(inject()||t>3000) clearInterval(iv); },25);
 })();
 
 /* ---------- 1. Unified list style: 2-column card rows ---------- */
