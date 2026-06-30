@@ -1412,6 +1412,172 @@
   if(document.readyState!=="loading") go();
 })();
 
+/* ====================================================================
+   Block 27 — Right-column split: context-sensitive Metrics panel (top)
+   + AI Studio (bottom). Metric tiles reuse the big-number .cc-kpi font.
+   ==================================================================== */
+(function(){
+  function esc(s){return (''+(s==null?'':s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function S(){ try{ return (window.LifeOS&&LifeOS.get)?LifeOS.get():((window.Store&&Store.state)||{}); }catch(e){ return {}; } }
+  function A(x){ return Array.isArray(x)?x:[]; }
+  function curView(){
+    var on=document.querySelector('main#main .view.on'); 
+    if(on&&on.id) return on.id.replace('view-','');
+    var h=(location.hash||'').replace('#/','').split('/')[0]; return h||'today';
+  }
+  function fmtMoney(n){ if(n==null||isNaN(n)) return '—'; var a=Math.abs(n); if(a>=1e6) return '$'+(n/1e6).toFixed(2)+'M'; if(a>=1e3) return '$'+Math.round(n/1e3)+'k'; return '$'+Math.round(n); }
+  function netWorth(s){ var m=s.money||{}; var assets=A(m.assets).reduce(function(t,a){return t+(+a.value||+a.amount||0);},0); var inv=A(s.investments).reduce(function(t,a){return t+(+a.value||0);},0); return assets+inv; }
+  function pracDone(s){ var d=0; A(s.practices).forEach(function(p){ if(p.doneToday||p.done||(p.log&&p.log.indexOf(new Date().toISOString().slice(0,10))>=0)) d++; }); return d; }
+  function openTasks(s){ return A(s.tasks).filter(function(t){return t.status!=='done'&&!t.completedAt;}).length; }
+
+  function tiles(view,s){
+    var opps=(s.career&&A(s.career.opportunities))||[];
+    var bcs=A(s.businessCases);
+    var P=A(s.practices).length;
+    var common_today=[
+      {l:'Open tasks', v:openTasks(s), kc:'#3b6ef6'},
+      {l:'Practices', v:pracDone(s)+'/'+P, kc:'#22c074'},
+      {l:'Opportunities', v:opps.length, kc:'#9466ff'},
+      {l:'Business cases', v:bcs.length, kc:'#e0a458'}
+    ];
+    var map={
+      today: common_today,
+      tasks: [
+        {l:'Open tasks', v:openTasks(s), kc:'#3b6ef6'},
+        {l:'Inbox', v:A(s.tasks).filter(function(t){return t.status==='inbox';}).length, kc:'#e0a458'},
+        {l:'MITs', v:A(s.tasks).filter(function(t){return t.mit;}).length, kc:'#ff5d6c'},
+        {l:'Practices', v:pracDone(s)+'/'+P, kc:'#22c074'}
+      ],
+      career: [
+        {l:'Opportunities', v:opps.length, kc:'#9466ff'},
+        {l:'Pursuing', v:opps.filter(function(o){return (o.stage&&/pursu|apply|interview/i.test(o.stage))||o.verdict==='pursue';}).length, kc:'#3b6ef6'},
+        {l:'Experience', v:(s.career&&A(s.career.experience).length)||0, kc:'#22c074'},
+        {l:'Skills', v:(s.career&&A(s.career.skills).length)||0, kc:'#e0a458'}
+      ],
+      opportunities: [
+        {l:'Roles', v:opps.length, kc:'#9466ff'},
+        {l:'Business cases', v:bcs.length, kc:'#e0a458'},
+        {l:'Top NPV', v:(function(){var m=0;bcs.forEach(function(b){var n=+(b.npv||(b.financials&&b.financials.npv)||0);if(n>m)m=n;});return m?fmtMoney(m):'—';})(), kc:'#22c074'},
+        {l:'Pursuing', v:opps.filter(function(o){return o.verdict==='pursue';}).length, kc:'#3b6ef6'}
+      ],
+      money: [
+        {l:'Net worth', v:fmtMoney(netWorth(s)), kc:'#22c074'},
+        {l:'Bills', v:A(s.money&&s.money.bills).length||A(s.bills).length, kc:'#ff5d6c'},
+        {l:'Accounts', v:A(s.accounts).length, kc:'#3b6ef6'},
+        {l:'Budgets', v:A(s.budgets).length, kc:'#9466ff'}
+      ],
+      health: [
+        {l:'Readiness', v:(s.readiness&&(s.readiness.score||s.readiness.value))||(s.healthV2&&s.healthV2.readiness)||'—', kc:'#22c074'},
+        {l:'Markers', v:A(s.healthMetrics).length||A(s.healthV2&&s.healthV2.metrics).length||'—', kc:'#3b6ef6'},
+        {l:'Workouts', v:A(s.workouts).length, kc:'#ff5d6c'},
+        {l:'Labs', v:A(s.healthLabs).length, kc:'#9466ff'}
+      ],
+      identity: [
+        {l:'Values', v:(s.identity&&A(s.identity.values).length)||0, kc:'#9466ff'},
+        {l:'Domains', v:A(s.domains).length, kc:'#3b6ef6'},
+        {l:'Goals', v:A(s.goals).length, kc:'#22c074'},
+        {l:'Decisions', v:A(s.decisions).length, kc:'#e0a458'}
+      ],
+      practices: [
+        {l:'Today', v:pracDone(s)+'/'+A(s.practices).length, kc:'#22c074'},
+        {l:'Total', v:A(s.practices).length, kc:'#3b6ef6'},
+        {l:'Open tasks', v:openTasks(s), kc:'#e0a458'},
+        {l:'Readiness', v:(s.readiness&&(s.readiness.score||s.readiness.value))||'—', kc:'#ff5d6c'}
+      ],
+      communications: [
+        {l:'People', v:A(s.people).length, kc:'#9466ff'},
+        {l:'Reply queue', v:A(s.comms).filter(function(c){return c.status==='awaiting'||c.owe;}).length||A(s.comms).length, kc:'#ff5d6c'},
+        {l:'Open tasks', v:openTasks(s), kc:'#3b6ef6'},
+        {l:'Practices', v:pracDone(s)+'/'+A(s.practices).length, kc:'#22c074'}
+      ],
+      projects: [
+        {l:'Projects', v:A(s.projects).length, kc:'#3b6ef6'},
+        {l:'Active', v:A(s.projects).filter(function(p){return /active/i.test(p.status||'');}).length, kc:'#22c074'},
+        {l:'Blocked', v:A(s.projects).filter(function(p){return /block/i.test(p.status||'');}).length, kc:'#ff5d6c'},
+        {l:'Open tasks', v:openTasks(s), kc:'#e0a458'}
+      ]
+    };
+    return map[view]||map.today;
+  }
+  window.LifeOSMetrics={ tiles:tiles, view:curView };
+
+  function css(){
+    if(document.getElementById('lo-metrics-css')||!document.head||!document.getElementById('app')) return;
+    document.head.insertAdjacentHTML('beforeend','<style id="lo-metrics-css">'
+      +'aside#ai-studio{display:flex !important;flex-direction:column;min-height:0}'
+      +'#lo-metrics{flex:0 0 auto;border-bottom:1px solid var(--line-1);padding:13px 15px 13px;max-height:48%;overflow:auto}'
+      +'#lo-metrics .lm-head{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-4);display:flex;justify-content:space-between;align-items:center;margin-bottom:11px}'
+      +'#lo-metrics .lm-head button{font-family:var(--mono);font-size:10px;color:var(--fg-4);background:none;border:none;cursor:pointer;letter-spacing:.08em}'
+      +'#lo-metrics .lm-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}'
+      +'#lo-metrics .lm-tile{position:relative;border:1px solid var(--line-1);border-radius:13px;background:var(--bg-2);padding:12px 13px;overflow:hidden}'
+      +'#lo-metrics .lm-tile::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--kc,#9466ff)}'
+      +'#lo-metrics .lm-tile .v{font-family:var(--display);font-size:24px;font-weight:800;line-height:1;color:var(--fg-1)}'
+      +'#lo-metrics .lm-tile .l{font-family:var(--mono);font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-4);margin-top:6px}'
+      +'#lo-metrics.lm-min .lm-grid{display:none}'
+      +'</style>');
+  }
+  function render(){
+    var ai=document.getElementById('ai-studio'); if(!ai) return false;
+    css();
+    var view=curView(), s=S();
+    var host=document.getElementById('lo-metrics');
+    if(!host){ host=document.createElement('div'); host.id='lo-metrics'; ai.insertBefore(host,ai.firstChild); }
+    var sig=view+'|'+JSON.stringify(tiles(view,s).map(function(t){return t.v;}));
+    if(host.getAttribute('data-sig')===sig) return true;
+    host.setAttribute('data-sig',sig);
+    var min=host.classList.contains('lm-min');
+    var ts=tiles(view,s);
+    host.innerHTML='<div class="lm-head"><span>Metrics · '+esc(view)+'</span><button data-lm-min>'+(min?'show':'hide')+'</button></div>'
+      +'<div class="lm-grid">'+ts.map(function(t){return '<div class="lm-tile" style="--kc:'+esc(t.kc)+'"><div class="v">'+esc(t.v)+'</div><div class="l">'+esc(t.l)+'</div></div>';}).join('')+'</div>';
+    var btn=host.querySelector('[data-lm-min]');
+    if(btn) btn.addEventListener('click',function(){ host.classList.toggle('lm-min'); host.removeAttribute('data-sig'); render(); });
+    return true;
+  }
+  window.LifeOSMetrics.render=render;
+  function go(){ if(!document.getElementById('ai-studio')) return false; render(); return false; }
+  if(!window.__loMetricsHooks && typeof window.addEventListener==='function'){ window.__loMetricsHooks=true;
+    window.addEventListener('hashchange',function(){ setTimeout(render,120); });
+  }
+  var iv=setInterval(function(){ render(); },1400);
+  var iv2=setInterval(go,60); setTimeout(function(){ clearInterval(iv2); },30000);
+  if(document.readyState!=='loading') go();
+})();
+
+/* ====================================================================
+   Block 28 — Tasks console: dedicated Excel-style list, tight filter
+   toolbar, bolder unified rows, colorful grouped headers. Practices
+   are folded into the Metrics panel, so hide them at the top here.
+   ==================================================================== */
+(function(){
+  function css(){
+    if(document.getElementById('lo-console-css')||!document.head||!document.getElementById('app')) return;
+    document.head.insertAdjacentHTML('beforeend','<style id="lo-console-css">'
+      /* center = dedicated list: pull practices/across-your-life out of the top */
+      +'#view-tasks #task-practices{display:none !important}'
+      +'#view-tasks > h1{font-size:21px;font-weight:800;letter-spacing:-.01em}'
+      +'#view-tasks > p.sub{margin-top:-2px}'
+      /* tight filter toolbar */
+      +'#view-tasks .task-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--bg-2);border:1px solid var(--line-1);border-radius:999px;padding:5px 7px;margin:10px 0 12px}'
+      +'#view-tasks .task-toolbar button,#view-tasks .task-toolbar .seg,#view-tasks .task-toolbar select{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.03em;border-radius:999px}'
+      /* Excel-like dense rows */
+      +'#view-tasks #task-list.tlist{display:flex;flex-direction:column;gap:7px}'
+      +'#view-tasks .tlist .trow,#view-tasks .tlist .task-row,#view-tasks .tlist > div[data-id]{display:flex;align-items:center;gap:11px;border:1px solid var(--line-1);border-left:3px solid var(--kc,#3b6ef6);border-radius:12px;background:var(--bg-2);padding:11px 13px;transition:transform .12s,box-shadow .12s}'
+      +'#view-tasks .tlist .trow:hover,#view-tasks .tlist .task-row:hover,#view-tasks .tlist > div[data-id]:hover{transform:translateX(2px);box-shadow:var(--e-1)}'
+      +'#view-tasks .tlist .trow .ttitle,#view-tasks .tlist .task-row .ttl,#view-tasks .tlist b{font-size:14px;font-weight:700;color:var(--fg-1)}'
+      /* colorful group headers */
+      +'.lo-group{font-family:var(--mono);font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:9px;margin:16px 0 9px;color:var(--gc,#3b6ef6)}'
+      +'.lo-group::before{content:"";width:9px;height:9px;border-radius:3px;background:var(--gc,#3b6ef6)}'
+      +'.lo-group::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,color-mix(in srgb,var(--gc,#3b6ef6) 40%,transparent),transparent)}'
+      /* simplify + bolden generic cards everywhere */
+      +'.cc-kpi .v,.kpi .v{font-weight:800}'
+      +'</style>');
+  }
+  function go(){ if(!document.getElementById('app')) return false; css(); return false; }
+  window.LifeOSConsole={ recss:function(){ var e=document.getElementById('lo-console-css'); if(e)e.remove(); css(); } };
+  var iv=setInterval(go,60); setTimeout(function(){ clearInterval(iv); },30000);
+  if(document.readyState!=='loading') go();
+})();
+
 </script>
 
   <div id="__bundler_thumbnail">
