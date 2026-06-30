@@ -1215,6 +1215,66 @@
   if(document.readyState!=="loading") go();
 })();
 
+/* ---------- 24. Opportunity actions: job link + Tailor resume + Draft outreach ---------- */
+(function(){
+  function st(){ try{ return window.LifeOS?window.LifeOS.get():{}; }catch(e){ return {}; } }
+  function save(s){ try{ if(window.LifeOS&&window.LifeOS.set) window.LifeOS.set(s); }catch(e){} }
+  var E=function(s){ return window.esc?window.esc(String(s==null?"":s)):String(s==null?"":s); };
+  function patch(){
+    if(!window.CareerEngine || window.CareerEngine.__oppact) return false;
+    var C=window.CareerEngine; if(typeof C.openOpp!=="function") return false; C.__oppact=true;
+    function opp(id){ try{ return (C.d().opportunities||[]).find(function(x){return x.id===id;}); }catch(e){ return null; } }
+    function showCopy(title,text,accent){
+      var id="cp_"+Math.random().toString(36).slice(2,7);
+      var html='<textarea id="'+id+'" class="oc-copytext" spellcheck="false">'+E(text)+'</textarea>'
+        +'<div class="ls-act"><button class="btn small" onclick="(function(b){var t=document.getElementById(\''+id+'\');t.focus();t.select();try{navigator.clipboard.writeText(t.value);}catch(e){try{document.execCommand(\'copy\');}catch(x){}}b.textContent=\'Copied \\u2713\';})(this)">Copy</button><button class="btn ghost small" onclick="LifeSheet.close()">Close</button></div>';
+      if(window.LifeSheet) window.LifeSheet.open(title, html, accent||"#0e8aa6");
+    }
+    C.setOppLink=function(id){ var s=st(); var o=((s.career&&s.career.opportunities)||[]).find(function(x){return x.id===id;}); if(!o)return; var url=prompt("Job posting URL", o.link||""); if(url===null)return; o.link=(url||"").trim(); save(s); if(C.closeOpp)C.closeOpp(); setTimeout(function(){ C.openOpp(id); },0); };
+    C.openLink=function(id){ var o=opp(id); if(o&&o.link){ try{ window.open(o.link,"_blank","noopener"); }catch(e){} } };
+    C.tailorResume=function(id){ var c=this.d()||{}; var o=opp(id); if(!o)return;
+      var role=o.role||"the role", co=o.company||""; var head=c.headline||c.summary||"";
+      var kw=(role+" "+co).toLowerCase().split(/[^a-z]+/).filter(function(w){return w.length>3;});
+      var bl=[]; (c.experience||[]).forEach(function(e){ (e.bullets||[]).forEach(function(b){ var s=0,lb=b.toLowerCase(); kw.forEach(function(w){ if(lb.indexOf(w)>-1)s++; }); bl.push({b:b,s:s,co:e.company}); }); });
+      bl.sort(function(a,b){ return b.s-a.s; }); var top=bl.slice(0,6);
+      var skills=(c.skills||[]).slice(0,12);
+      var txt="TAILORED RESUME — "+role+(co?(" @ "+co):"")+"\n\nSUMMARY\n"+(head?head+"\n":"")
+        +"Senior technical program leader aligning regulated software & AI delivery to "+(co||"your")+"'s objectives — 15+ yrs across medical device, logistics, and USAF financial-operations command.\n\nMOST RELEVANT EXPERIENCE\n"
+        +(top.length?top.map(function(t){ return "• "+t.b+(t.co?(" ("+t.co+")"):""); }).join("\n"):"• (add experience bullets in the Master Resume)")
+        +"\n\nKEY SKILLS\n"+(skills.length?skills.join(" · "):"(add skills)");
+      showCopy("Tailored resume — "+role, txt, "#0e8aa6"); };
+    C.draftOutreach=function(id){ var c=this.d()||{}; var o=opp(id); if(!o)return;
+      var role=o.role||"the role", co=o.company||"your team"; var name=""; try{ name=(LifeOS.get().profile&&LifeOS.get().profile.name)||"Travis"; }catch(e){ name="Travis"; }
+      var txt="Hi there,\n\nI'm "+name+" — "+(c.headline||"a senior technical program leader")+". I came across the "+role+" role"+(co?(" at "+co):"")+" and it maps closely to my background leading regulated software and platform-modernization programs (most recently at Haemonetics).\n\nA few highlights: shipped large cross-org programs end-to-end, built and scaled PMOs, and partnered tightly with engineering, product, and clinical/quality stakeholders. I'd welcome a short conversation about how I could contribute.\n\nThank you,\n"+name;
+      showCopy("Outreach draft — "+co, txt, "#1f9d57"); };
+    function injectActions(id){
+      var card=document.querySelector("#oc-ov .oc-card"); if(!card) return; if(card.querySelector(".oc-jobacts")) return;
+      var o=opp(id)||{};
+      var act=card.querySelector(".oc-act");
+      var linkRow='<div class="oc-sec oc-jobacts"><div class="oc-st">Job posting</div>'
+        +(o.link?'<a class="oc-link" href="'+E(o.link)+'" target="_blank" rel="noopener">'+E(o.link)+'</a> <a class="oc-edit" onclick="CareerEngine.setOppLink(\''+id+'\')">edit</a>':'<a class="oc-edit" onclick="CareerEngine.setOppLink(\''+id+'\')">+ add link</a>')
+        +'</div>';
+      if(act){ act.insertAdjacentHTML("beforebegin", linkRow);
+        act.insertAdjacentHTML("afterbegin",
+          '<button class="btn small" onclick="CareerEngine.tailorResume(\''+id+'\')">Tailor resume</button>'
+          +'<button class="btn small" onclick="CareerEngine.draftOutreach(\''+id+'\')">Draft outreach</button>'
+          +(o.link?'<button class="btn ghost small" onclick="CareerEngine.openLink(\''+id+'\')">Open posting</button>':''));
+      }
+    }
+    var _open=C.openOpp.bind(C);
+    C.openOpp=function(id){ var r=_open(id); try{ setTimeout(function(){ injectActions(id); },0); }catch(e){} return r; };
+    if(!document.getElementById("oppact-css")){ document.head.insertAdjacentHTML("beforeend",'<style id="oppact-css">'
+      +'.oc-copytext{width:100%;min-height:250px;box-sizing:border-box;background:var(--bg-2);border:1px solid var(--line-1);border-radius:10px;padding:12px 13px;color:var(--fg-1);font:12.5px/1.6 var(--mono);white-space:pre-wrap;resize:vertical;outline:none}'
+      +'.oc-copytext:focus{border-color:var(--accent)}'
+      +'.oc-link{color:#0e8aa6;font-size:12.5px;word-break:break-all}.oc-edit{color:#0e8aa6;cursor:pointer;font-size:11.5px;margin-left:6px}.oc-edit:hover{text-decoration:underline}'
+      +'.oc-jobacts .oc-st{margin-bottom:6px}'
+      +'</style>'); }
+    return true;
+  }
+  var n=0, iv=setInterval(function(){ n++; if(patch()||n>240) clearInterval(iv); },80);
+  if(document.readyState!=="loading") patch();
+})();
+
 </script>
 
   <div id="__bundler_thumbnail">
