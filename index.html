@@ -27,55 +27,101 @@
    patches it once, and re-renders. References ONLY window globals.
    =================================================================== */
 
-/* ---------- 0. Password gate (set-on-first-use, hashed, client-side) ---------- */
+/* ---------- 0. Supabase auth gate + cloud sync ---------- */
 (function(){
-  var KEY="lifeos.pw";
-  async function sha(s){ var b=await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0");}).join(""); }
-  function unlocked(){ try{ return sessionStorage.getItem("lifeos.pw.ok")==="1"; }catch(e){ return false; } }
+  var SB_URL="https://akdqrtjuhrlplkvhrhqm.supabase.co";
+  var SB_KEY="sb_publishable_mnbOHGZUqYpS3rb8O4qVYQ_KIjfWboj";
+  var SB_CDN="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
+  var client=null, syncing=false, lastPushed="";
+
+  function loadScript(src){ return new Promise(function(res,rej){ if(window.supabase&&window.supabase.createClient) return res(); var s=document.createElement("script"); s.src=src; s.onload=function(){res();}; s.onerror=function(){rej(new Error("cdn"));}; (document.head||document.documentElement).appendChild(s); }); }
+  function getClient(){ return loadScript(SB_CDN).then(function(){ if(!client) client=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,storageKey:"lifeos.auth"}}); return client; }); }
+
   function css(){
     if(document.getElementById("lifeos-gate-css")||!document.head) return;
     var st=document.createElement("style"); st.id="lifeos-gate-css";
     st.textContent='#lifeos-gate{position:fixed;inset:0;z-index:2147483600;display:flex;align-items:center;justify-content:center;background:radial-gradient(1200px 820px at 50% -12%,#16315c,#0b1b33 62%);font-family:-apple-system,BlinkMacSystemFont,sans-serif;animation:lgIn .3s ease}'
-      +'#lifeos-gate.out{opacity:0;transition:opacity .25s ease;pointer-events:none}@keyframes lgIn{from{opacity:0}to{opacity:1}}'
+      +'#lifeos-gate.out{opacity:0;transition:opacity .25s ease;pointer-events:none}@keyframes lgIn{from{opacity:0}to{opacity:1}}@keyframes lgspin{from{transform:rotate(0)}to{transform:rotate(360deg)}}'
       +'.lg-card{width:344px;max-width:88vw;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.11);border-radius:20px;padding:32px 28px;box-shadow:0 30px 80px rgba(0,0,0,.45);backdrop-filter:blur(8px);text-align:center}'
-      +'.lg-ring{width:54px;height:54px;border-radius:50%;margin:0 auto 14px;border:3px solid #1e3a5f;border-top-color:#e0552b;transform:rotate(-30deg)}'
+      +'.lg-ring{width:54px;height:54px;border-radius:50%;margin:0 auto 14px;border:3px solid #1e3a5f;border-top-color:#e0552b;animation:lgspin 1s linear infinite}'
       +'.lg-logo{font-family:Georgia,serif;font-size:32px;font-weight:700;color:#f4efe6;margin-bottom:4px}.lg-logo b{color:#e0552b}'
       +'.lg-sub{color:#8c9bb5;font-size:12.5px;line-height:1.55;margin:6px 0 20px}'
       +'#lifeos-gate input{width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:12px 14px;color:#f4efe6;font-size:14px;margin-bottom:10px;outline:none}'
       +'#lifeos-gate input:focus{border-color:#e0552b;background:rgba(255,255,255,.09)}'
-      +'#lg-go{width:100%;background:linear-gradient(180deg,#e8663d,#e0552b);color:#fff;border:none;border-radius:11px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;box-shadow:0 8px 22px rgba(224,85,43,.35)}#lg-go:hover{filter:brightness(1.06)}'
-      +'.lg-err{color:#ff8a80;font-size:12px;min-height:15px;margin-top:10px}.lg-hint{color:#5f6f88;font-size:11px;margin-top:14px;line-height:1.5}';
+      +'#lg-go{width:100%;background:linear-gradient(180deg,#e8663d,#e0552b);color:#fff;border:none;border-radius:11px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;box-shadow:0 8px 22px rgba(224,85,43,.35)}#lg-go:hover{filter:brightness(1.06)}#lg-go:disabled{opacity:.7;cursor:default}'
+      +'.lg-err{font-size:12px;min-height:15px;margin-top:10px;color:#ff8a80}.lg-toggle{color:#8c9bb5;font-size:12px;margin-top:16px}.lg-toggle a{color:#e0552b;cursor:pointer;text-decoration:none}.lg-toggle a:hover{text-decoration:underline}';
     document.head.appendChild(st);
   }
+
+  function applyCloud(state){
+    try{ localStorage.setItem("lifeos.v1", JSON.stringify(state)); }catch(e){}
+    lastPushed=JSON.stringify(state);
+    if(window.LifeOS && window.LifeOS.set){ try{ window.LifeOS.set(state); return; }catch(e){} }
+    try{ location.reload(); }catch(e){}
+  }
+  function startSync(c,uid){
+    if(syncing) return; syncing=true;
+    c.from("lifeos_state").select("state").eq("user_id",uid).maybeSingle().then(function(r){
+      var cloud=r && r.data && r.data.state;
+      if(cloud && cloud.schema===1){ applyCloud(cloud); }
+      else { try{ var local=JSON.parse(localStorage.getItem("lifeos.v1")||"null"); if(local){ lastPushed=JSON.stringify(local); c.rpc("lifeos_save",{p_state:local}); } }catch(e){} }
+    });
+    setInterval(function(){
+      try{ var cur=localStorage.getItem("lifeos.v1")||""; if(cur && cur!==lastPushed){ var obj=JSON.parse(cur); c.rpc("lifeos_save",{p_state:obj}).then(function(r){ if(!r.error) lastPushed=cur; }); } }catch(e){}
+    },4000);
+    window.LifeOSAuth={ signOut:function(){ getClient().then(function(c){ c.auth.signOut().then(function(){ try{ sessionStorage.clear(); }catch(e){} location.reload(); }); }); } };
+  }
+
+  function dismiss(ov){ ov.classList.add("out"); setTimeout(function(){ try{ov.remove();}catch(e){} },260); }
+
+  function form(ov, mode){
+    var card=ov.querySelector(".lg-card");
+    card.innerHTML='<div class="lg-logo">Life<b>OS</b></div>'
+      +'<div class="lg-sub">'+(mode==="up"?"Create your account — your operating system syncs securely to the cloud.":"Welcome back. Sign in to your operating system.")+'</div>'
+      +'<input id="lg-em" type="email" autocomplete="email" placeholder="Email">'
+      +'<input id="lg-pw" type="password" autocomplete="'+(mode==="up"?"new-password":"current-password")+'" placeholder="Password">'
+      +'<button id="lg-go">'+(mode==="up"?"Create account":"Sign in")+'</button>'
+      +'<div id="lg-err" class="lg-err"></div>'
+      +'<div class="lg-toggle">'+(mode==="up"?'Already have an account? <a id="lg-sw">Sign in</a>':'New here? <a id="lg-sw">Create an account</a>')+'</div>';
+    var em=card.querySelector("#lg-em"), pw=card.querySelector("#lg-pw"), go=card.querySelector("#lg-go"), err=card.querySelector("#lg-err"), sw=card.querySelector("#lg-sw");
+    try{ em.focus(); }catch(e){}
+    sw.onclick=function(){ form(ov, mode==="up"?"in":"up"); };
+    function submit(){
+      err.style.color="#ff8a80"; err.textContent="";
+      var e=(em.value||"").trim(), p=pw.value||"";
+      if(!e||!p){ err.textContent="Enter your email and password."; return; }
+      if(mode==="up" && p.length<6){ err.textContent="Password must be at least 6 characters."; return; }
+      go.disabled=true; go.textContent=mode==="up"?"Creating…":"Signing in…";
+      getClient().then(function(c){
+        var op = mode==="up" ? c.auth.signUp({email:e,password:p}) : c.auth.signInWithPassword({email:e,password:p});
+        return op.then(function(r){
+          go.disabled=false; go.textContent=mode==="up"?"Create account":"Sign in";
+          if(r.error){ err.textContent=r.error.message||"Something went wrong."; return; }
+          var sess=r.data && r.data.session, usr=r.data && r.data.user;
+          if(sess && usr){ dismiss(ov); startSync(c, usr.id); }
+          else if(mode==="up"){ err.style.color="#9fd5a5"; err.textContent="Check your email to confirm, then sign in."; }
+          else { err.textContent="Could not sign in — check your details."; }
+        });
+      }).catch(function(){ go.disabled=false; go.textContent=mode==="up"?"Create account":"Sign in"; err.textContent="Couldn’t reach the server. Check your connection."; });
+    }
+    go.onclick=submit;
+    [em,pw].forEach(function(el){ el.addEventListener("keydown",function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); submit(); } }); });
+  }
+
   function inject(){
-    if(unlocked()) return true;
-    // Wait for the app shell to exist so we inject onto the FINAL document
-    // (the bundler replaces the whole document during unpack, which would wipe an early overlay).
     if(!document.body || !(document.getElementById("app")||document.getElementById("main")||window.Store)) return false;
     css();
     if(document.getElementById("lifeos-gate")) return true;
-    var stored=null; try{ stored=localStorage.getItem(KEY); }catch(e){}
-    var create=!stored;
     var ov=document.createElement("div"); ov.id="lifeos-gate";
-    ov.innerHTML='<div class="lg-card"><div class="lg-ring"></div><div class="lg-logo">Life<b>OS</b></div>'
-      +'<div class="lg-sub">'+(create?"Set a password to protect your operating system. You'll use it each time.":"Welcome back. Enter your password.")+'</div>'
-      +'<input id="lg-pw" type="password" autocomplete="'+(create?"new-password":"current-password")+'" placeholder="Password">'
-      +(create?'<input id="lg-pw2" type="password" autocomplete="new-password" placeholder="Confirm password">':"")
-      +'<button id="lg-go">'+(create?"Set password &amp; enter":"Unlock")+'</button>'
-      +'<div id="lg-err" class="lg-err"></div>'
-      +(create?'':'<div class="lg-hint">Forgot it? Clearing this site’s data resets the password.</div>')
-      +'</div>';
+    ov.innerHTML='<div class="lg-card"><div class="lg-ring"></div><div class="lg-logo">Life<b>OS</b></div><div class="lg-sub">Connecting…</div></div>';
     document.body.appendChild(ov);
-    var pw=ov.querySelector("#lg-pw"), pw2=ov.querySelector("#lg-pw2"), go=ov.querySelector("#lg-go"), err=ov.querySelector("#lg-err");
-    try{ pw.focus(); }catch(e){}
-    function pass(){ try{ sessionStorage.setItem("lifeos.pw.ok","1"); }catch(e){} ov.classList.add("out"); setTimeout(function(){ try{ov.remove();}catch(e){} },260); }
-    async function submit(){ err.textContent=""; var v=pw.value||"";
-      if(!v){ err.textContent="Enter a password."; return; }
-      if(create){ if(v.length<4){ err.textContent="Use at least 4 characters."; return; } if(v!==(pw2.value||"")){ err.textContent="Passwords don’t match."; return; } try{ localStorage.setItem(KEY, await sha(v)); }catch(e){} pass(); }
-      else { if((await sha(v))===stored){ pass(); } else { err.textContent="Incorrect password."; pw.value=""; pw.focus(); } }
-    }
-    go.onclick=submit;
-    [pw,pw2].forEach(function(el){ if(el) el.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); submit(); } }); });
+    getClient().then(function(c){
+      return c.auth.getSession().then(function(r){
+        var sess=r.data && r.data.session;
+        if(sess && sess.user){ dismiss(ov); startSync(c, sess.user.id); }
+        else { form(ov,"in"); }
+      });
+    }).catch(function(){ form(ov,"in"); });
     return true;
   }
   var t=0, iv=setInterval(function(){ t++; if(inject()||t>3000) clearInterval(iv); },25);
