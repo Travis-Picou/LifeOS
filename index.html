@@ -2466,7 +2466,8 @@
    note atop Identity.
    ==================================================================== */
 (function(){
-  if(!document.getElementById("lo-wave1-css")){
+  function ensureW1CSS(){
+    if(document.getElementById("lo-wave1-css")) return;
     var css=document.createElement("style"); css.id="lo-wave1-css";
     css.textContent=[
       "#main .hc-grid{ grid-template-columns:repeat(auto-fit,minmax(160px,1fr)) !important; }",
@@ -2478,9 +2479,10 @@
     var ns=document.querySelectorAll(".surf-note");
     for(var i=0;i<ns.length;i++){ var t=(ns[i].textContent||"").trim(); if(t===""||t==="\u2605"||t==="\u2606"||t==="\u2b50") ns[i].style.display="none"; }
   }
-  killStar(); setInterval(killStar,3000);
-  if(typeof window.addEventListener==="function") window.addEventListener("hashchange",function(){ setTimeout(killStar,80); setTimeout(killStar,450); });
-  window.LifeOSWave1={ killStar:killStar };
+  function tick(){ ensureW1CSS(); killStar(); }
+  tick(); setInterval(tick,3000);
+  if(typeof window.addEventListener==="function") window.addEventListener("hashchange",function(){ setTimeout(tick,80); setTimeout(tick,450); });
+  window.LifeOSWave1={ killStar:killStar, ensureCSS:ensureW1CSS };
 })();
 
 
