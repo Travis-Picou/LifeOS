@@ -2368,7 +2368,8 @@
   var NAME_OVERRIDE={ tasks:"Ops Board" };            // section id -> display title
   var CUSTOM={ accounts:"Accounts", boundaries:"Boundaries" };
 
-  if(!document.getElementById("lo-herolockup-css")){
+  function ensureCSS(){
+    if(document.getElementById("lo-herolockup-css")) return;
     var css=document.createElement("style"); css.id="lo-herolockup-css";
     css.textContent=[
       /* let the wordmark column size to its content so the title sits right after it */
@@ -2393,6 +2394,7 @@
     ].join("\n");
     (document.head||document.documentElement).appendChild(css);
   }
+  ensureCSS();
 
   function curView(){
     var h=(location.hash||"").replace(/^#\/?/,"").split("?")[0].split("/")[0];
@@ -2406,7 +2408,7 @@
     if(NAME_OVERRIDE[v]) return setName(NAME_OVERRIDE[v]); // e.g. tasks -> Ops Board
     /* other sections: app's updateTopBar already sets the right name; leave it */
   }
-  setInterval(paint,400);
+  setInterval(function(){ ensureCSS(); paint(); },400);
   document.addEventListener("click",function(e){
     var b=e.target && e.target.closest && e.target.closest('.navbtn[data-view]'); if(!b) return;
     setTimeout(paint,30);
