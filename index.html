@@ -1178,6 +1178,26 @@
     desertnight:{"--bg":"#00091e","--bg-1":"#011635","--bg-2":"#06224a","--bg-3":"#0d3863","--fg":"#f3f5fb","--fg-1":"#e8edf7","--fg-2":"#c9d3e4","--fg-3":"#7c8fb1","--fg-4":"#3f5476","--line-1":"#0d3863","--line-2":"#18436d","--on-accent":"#1a0e06","--accent":"#ee8a4c","--accent-h":"#d96535","--accent-soft":"rgba(238,138,76,.16)","--line-3":"rgba(192,138,82,.40)","--chrome-bg":"#011635","--chrome-fg":"#f3f5fb","--chrome-fg2":"#c9d3e4","--chrome-fg3":"#7c8fb1","--chrome-fg4":"#3f5476","--chrome-line":"rgba(255,255,255,.08)","--chrome-hover":"rgba(255,255,255,.06)","--chrome-brand":"#f3f5fb","--gold":"#c08a52","--cool":"#7c8fb1","--good":"#5fb98a","--warn":"#ee8a4c","--bad":"#ea6e6e","--dim":"#3f5476","--veil":"rgba(0,9,30,.82)"},
     palmwave:{"--bg":"#050507","--bg-1":"#0b0b12","--bg-2":"#14141f","--bg-3":"#1e1e2d","--fg":"#f4f4fa","--fg-1":"#f4f4fa","--fg-2":"#b8b8cc","--fg-3":"#7a7a93","--fg-4":"#4a4a60","--line-1":"#1e1e2d","--line-2":"#2a2a3d","--on-accent":"#0a0a00","--accent":"#d4ff3a","--accent-h":"#b8e02f","--accent-soft":"rgba(212,255,58,.15)","--line-3":"rgba(255,46,199,.42)","--chrome-bg":"#0b0b12","--chrome-fg":"#f4f4fa","--chrome-fg2":"#b8b8cc","--chrome-fg3":"#7a7a93","--chrome-fg4":"#4a4a60","--chrome-line":"rgba(255,255,255,.08)","--chrome-hover":"rgba(255,255,255,.06)","--chrome-brand":"#d4ff3a","--gold":"#ffb02e","--cool":"#2a6bff","--good":"#a9e034","--warn":"#ffb02e","--bad":"#ff2ec7","--dim":"#4a4a60","--veil":"rgba(5,5,7,.82)"}
   };
+  var PERSONA={
+    tahoe:{display:"'Plus Jakarta Sans',-apple-system,'Segoe UI',sans-serif", r:[6,9,13,18], e:"soft"},
+    reef:{display:"'Newsreader',Georgia,serif", r:[6,10,15,21], e:"soft"},
+    sunny:{display:"'Plus Jakarta Sans',-apple-system,sans-serif", r:[8,12,16,23], e:"soft"},
+    lagoon:{display:"'Cormorant Garamond','Source Serif 4',Georgia,serif", r:[6,10,14,20], e:"soft"},
+    bloom:{display:"'Fraunces','Newsreader',Georgia,serif", r:[11,15,21,30], e:"bloom"},
+    desertnight:{display:"'Source Serif 4',Georgia,serif", r:[6,9,13,18], e:"dark"},
+    palmwave:{display:"'Space Grotesk','Plus Jakarta Sans',sans-serif", r:[3,5,8,12], e:"neon"}
+  };
+  var SHADOW={
+    soft:{"--e-1":"0 1px 2px rgba(20,50,70,.05)","--e-2":"0 2px 8px -2px rgba(20,50,70,.10),0 10px 30px -8px rgba(20,50,70,.10)","--e-3":"0 12px 34px -10px rgba(20,50,70,.16)"},
+    bloom:{"--e-1":"0 1px 2px rgba(120,40,60,.06)","--e-2":"0 4px 16px -4px rgba(200,40,90,.14)","--e-3":"0 14px 40px -12px rgba(200,40,90,.20)"},
+    dark:{"--e-1":"0 1px 2px rgba(0,0,0,.30)","--e-2":"0 2px 10px rgba(0,0,0,.35)","--e-3":"0 20px 50px rgba(0,0,0,.45)"},
+    neon:{"--e-1":"0 0 0 1px rgba(212,255,58,.07)","--e-2":"0 6px 24px -8px rgba(212,255,58,.22)","--e-3":"0 0 26px rgba(255,46,199,.16),0 18px 44px rgba(0,0,0,.55)"}
+  };
+  Object.keys(PERSONA).forEach(function(id){ var p=PERSONA[id], m=TVARS[id]; if(!m) return;
+    m["--display"]=p.display;
+    m["--r-xs"]=p.r[0]+"px"; m["--r-sm"]=p.r[1]+"px"; m["--r-md"]=p.r[2]+"px"; m["--r-lg"]=p.r[3]+"px";
+    var sh=SHADOW[p.e]||SHADOW.soft; m["--e-1"]=sh["--e-1"]; m["--e-2"]=sh["--e-2"]; m["--e-3"]=sh["--e-3"];
+  });
   var ALLKEYS={}; for(var t in TVARS){ for(var k in TVARS[t]) ALLKEYS[k]=1; }
   var MY=[{id:"tahoe",name:"Lake Tahoe",sw:["#eef5fb","#0a3a5c","#0076bc","#02a085"]},
           {id:"reef",name:"Reef",sw:["#f6f1fc","#3b0862","#743dbc","#ffa700"]},
@@ -1216,7 +1236,7 @@
     }
   }
   function restore(){ try{ var xt=localStorage.getItem("lifeos.xtheme"); if(xt && MYIDS.indexOf(xt)>-1){ var a=document.documentElement.style.getPropertyValue("--accent").trim().toLowerCase(); if(a!==(TVARS[xt]["--accent"]||"").toLowerCase()) applyMine(xt); } }catch(e){} }
-  function go(){ if(!(window.Theme||window.LifeOS)) return false; restore(); fill(); if(!window.__xthemes){ window.__xthemes=true; setInterval(function(){ fill(); restore(); },500); document.addEventListener("click",function(){ setTimeout(fill,60); },true); } return false; }
+  function go(){ if(!(window.Theme||window.LifeOS)) return false; if(!document.getElementById("lo-theme-fonts")&&document.head){ var lf=document.createElement("link"); lf.id="lo-theme-fonts"; lf.rel="stylesheet"; lf.href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Space+Grotesk:wght@500;700&family=Cormorant+Garamond:wght@600;700&display=swap"; document.head.appendChild(lf); } restore(); fill(); if(!window.__xthemes){ window.__xthemes=true; setInterval(function(){ fill(); restore(); },500); document.addEventListener("click",function(){ setTimeout(fill,60); },true); } return false; }
   var n=0, iv=setInterval(function(){ n++; if(go()||n>800) clearInterval(iv); },50);
   if(document.readyState!=="loading") go();
 })();
