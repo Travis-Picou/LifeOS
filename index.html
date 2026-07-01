@@ -1173,12 +1173,14 @@
     tahoe:L({"--accent":"#0076bc","--accent-h":"#005e96","--accent-soft":"rgba(0,118,188,.12)","--line-3":"rgba(2,160,133,.40)","--chrome-bg":"#0a3a5c","--bg":"#eef5fb","--cool":"#02a085"}),
     reef:L({"--accent":"#743dbc","--accent-h":"#5d2f99","--accent-soft":"rgba(116,61,188,.12)","--line-3":"rgba(255,167,0,.42)","--chrome-bg":"#3b0862","--bg":"#f6f1fc","--cool":"#05969f"}),
     sunny:L({"--accent":"#f59e0b","--accent-h":"#d97706","--accent-soft":"rgba(245,158,11,.14)","--line-3":"rgba(6,182,212,.40)","--chrome-bg":"#0e7490","--bg":"#fffdf3","--cool":"#06b6d4","--gold":"#d97706"}),
+    lagoon:L({"--accent":"#12909b","--accent-h":"#0e7c86","--accent-soft":"rgba(18,144,155,.13)","--line-3":"rgba(232,145,42,.42)","--chrome-bg":"#0b3f47","--bg":"#f7f3ec","--bg-1":"#efe9dd","--bg-3":"#f2ede2","--fg-1":"#1c2230","--fg-2":"#4a5160","--fg-3":"#7b8290","--fg-4":"#b6bcc6","--line-1":"#e9e3d6","--line-2":"#dcd4c4","--cool":"#0e7c86","--gold":"#c9781c","--good":"#37a86a","--warn":"#e8912a","--bad":"#e0554e"}),
     desertnight:{"--bg":"#00091e","--bg-1":"#011635","--bg-2":"#06224a","--bg-3":"#0d3863","--fg":"#f3f5fb","--fg-1":"#e8edf7","--fg-2":"#c9d3e4","--fg-3":"#7c8fb1","--fg-4":"#3f5476","--line-1":"#0d3863","--line-2":"#18436d","--on-accent":"#1a0e06","--accent":"#ee8a4c","--accent-h":"#d96535","--accent-soft":"rgba(238,138,76,.16)","--line-3":"rgba(192,138,82,.40)","--chrome-bg":"#011635","--chrome-fg":"#f3f5fb","--chrome-fg2":"#c9d3e4","--chrome-fg3":"#7c8fb1","--chrome-fg4":"#3f5476","--chrome-line":"rgba(255,255,255,.08)","--chrome-hover":"rgba(255,255,255,.06)","--chrome-brand":"#f3f5fb","--gold":"#c08a52","--cool":"#7c8fb1","--good":"#5fb98a","--warn":"#ee8a4c","--bad":"#ea6e6e","--dim":"#3f5476","--veil":"rgba(0,9,30,.82)"}
   };
   var ALLKEYS={}; for(var t in TVARS){ for(var k in TVARS[t]) ALLKEYS[k]=1; }
   var MY=[{id:"tahoe",name:"Lake Tahoe",sw:["#eef5fb","#0a3a5c","#0076bc","#02a085"]},
           {id:"reef",name:"Reef",sw:["#f6f1fc","#3b0862","#743dbc","#ffa700"]},
           {id:"sunny",name:"Sunny Beach",sw:["#fffdf3","#0e7490","#f59e0b","#06b6d4"]},
+          {id:"lagoon",name:"Crystal Lagoon",sw:["#f7f3ec","#0b3f47","#12909b","#e8912a"]},
           {id:"desertnight",name:"Desert Night",sw:["#00091e","#06224a","#ee8a4c","#c08a52"]}];
   var MYIDS=MY.map(function(m){return m.id;});
   try{ window.LifeOSThemes={ids:MYIDS,vars:TVARS}; }catch(e){}
