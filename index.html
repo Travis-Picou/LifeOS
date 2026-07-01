@@ -1421,9 +1421,11 @@
   function S(){ try{ return (window.LifeOS&&LifeOS.get)?LifeOS.get():((window.Store&&Store.state)||{}); }catch(e){ return {}; } }
   function A(x){ return Array.isArray(x)?x:[]; }
   function curView(){
-    var on=document.querySelector('main#main .view.on'); 
-    if(on&&on.id) return on.id.replace('view-','');
-    var h=(location.hash||'').replace('#/','').split('/')[0]; return h||'today';
+    var h=(location.hash||'').replace(/^#\/?/,'').split('/')[0];
+    if(h && h!=='surface') return h;
+    var on=document.querySelector('main#main .view.on');
+    if(on&&on.id && on.id!=='view-surface') return on.id.replace('view-','');
+    return 'today';
   }
   function fmtMoney(n){ if(n==null||isNaN(n)) return '—'; var a=Math.abs(n); if(a>=1e6) return '$'+(n/1e6).toFixed(2)+'M'; if(a>=1e3) return '$'+Math.round(n/1e3)+'k'; return '$'+Math.round(n); }
   function netWorth(s){ var m=s.money||{}; var assets=A(m.assets).reduce(function(t,a){return t+(+a.value||+a.amount||0);},0); var inv=A(s.investments).reduce(function(t,a){return t+(+a.value||0);},0); return assets+inv; }
