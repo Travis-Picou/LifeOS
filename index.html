@@ -1439,8 +1439,9 @@
     var _goals=A(s.goals), _GH=window.Goals;
     var _prog=_goals.map(function(g){return (_GH&&_GH.progress)?(+_GH.progress(g)||0):0;});
     var _avgP=_goals.length?Math.round(_prog.reduce(function(a,b){return a+b;},0)/_goals.length):0;
-    var _onT=_goals.filter(function(g){return _GH&&_GH.health&&/track|done/.test(_GH.health(g));}).length;
-    var _atR=_goals.filter(function(g){return _GH&&_GH.health&&/risk|behind|stall/.test(_GH.health(g));}).length;
+    function _hasPlan(g){return A(g.objectives).some(function(o){return A(o.tactics).length>0;})||(_prog[_goals.indexOf(g)]>0);}
+    var _planned=_goals.filter(_hasPlan).length;
+    var _needsPlan=_goals.length-_planned;
     var common_today=[
       {l:'Open tasks', v:openTasks(s), kc:'#3b6ef6'},
       {l:'Practices', v:pracDone(s)+'/'+P, kc:'#22c074'},
@@ -1464,13 +1465,13 @@
       opportunities: [
         {l:'Roles', v:opps.length, kc:'#9466ff'},
         {l:'Business cases', v:bcs.length, kc:'#e0a458'},
-        {l:'Top NPV', v:(function(){var m=0;bcs.forEach(function(b){var n=+(b.npv||(b.financials&&b.financials.npv)||0);if(n>m)m=n;});return m?fmtMoney(m):'—';})(), kc:'#22c074'},
+        {l:'Top NPV', v:(function(){var m=0;bcs.forEach(function(b){var n=+((b.metrics&&b.metrics.npvBase)||b.npv||0);if(n>m)m=n;});return m?fmtMoney(m):'—';})(), kc:'#22c074'},
         {l:'Pursuing', v:opps.filter(function(o){return o.verdict==='pursue';}).length, kc:'#3b6ef6'}
       ],
       goals: [
         {l:'Goals', v:_goals.length, kc:'#9466ff'},
-        {l:'On track', v:_onT, kc:'#22c074'},
-        {l:'At risk', v:_atR, kc:'#ff5d6c'},
+        {l:'Planned', v:_planned, kc:'#22c074'},
+        {l:'Needs plan', v:_needsPlan, kc:'#e0a458'},
         {l:'Avg progress', v:_avgP+'%', kc:'#3b6ef6'}
       ],
       money: [
@@ -1480,7 +1481,7 @@
         {l:'Budgets', v:A(s.budgets).length, kc:'#9466ff'}
       ],
       health: [
-        {l:'Readiness', v:(s.readiness&&(s.readiness.score||s.readiness.value))||(s.healthV2&&s.healthV2.readiness)||'—', kc:'#22c074'},
+        {l:'Readiness', v:(function(){var r=s.readiness;return (Array.isArray(r)&&r.length)?r[r.length-1]:((r&&(r.score||r.value))||'—');})(), kc:'#22c074'},
         {l:'Markers', v:A(s.healthMetrics).length||A(s.healthV2&&s.healthV2.metrics).length||'—', kc:'#3b6ef6'},
         {l:'Workouts', v:A(s.workouts).length, kc:'#ff5d6c'},
         {l:'Labs', v:A(s.healthLabs).length, kc:'#9466ff'}
@@ -1495,7 +1496,7 @@
         {l:'Today', v:pracDone(s)+'/'+A(s.practices).length, kc:'#22c074'},
         {l:'Total', v:A(s.practices).length, kc:'#3b6ef6'},
         {l:'Open tasks', v:openTasks(s), kc:'#e0a458'},
-        {l:'Readiness', v:(s.readiness&&(s.readiness.score||s.readiness.value))||'—', kc:'#ff5d6c'}
+        {l:'Readiness', v:(function(){var r=s.readiness;return (Array.isArray(r)&&r.length)?r[r.length-1]:((r&&(r.score||r.value))||'—');})(), kc:'#ff5d6c'}
       ],
       communications: [
         {l:'People', v:A(s.people).length, kc:'#9466ff'},
