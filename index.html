@@ -2038,7 +2038,7 @@
       +'#home-band .cc-kpi{min-height:96px;padding-bottom:22px !important}'
       +'</style>');
   }
-  function findVal(k){ var best=null,bf=0; var kids=k.querySelectorAll('*'); for(var i=0;i<kids.length;i++){ var c=kids[i]; if(c.children.length) continue; var fs=parseFloat(getComputedStyle(c).fontSize)||0; var t=c.textContent.trim(); if(fs>bf && /[0-9]/.test(t) && t.length<15){ bf=fs; best=c; } } return bf>=18?best:null; }
+  function findVal(k){ var best=null,bf=0; var kids=k.querySelectorAll('*'); for(var i=0;i<kids.length;i++){ var c=kids[i]; var t=c.textContent.trim(); if(!/[0-9]/.test(t)||t.length>16) continue; var fs=parseFloat(getComputedStyle(c).fontSize)||0; if(fs>bf || (fs===bf && best && c.querySelectorAll('*').length<best.querySelectorAll('*').length)){ bf=fs; best=c; } } return bf>=18?best:null; }
   function findLabel(k,valEl){ var kids=k.querySelectorAll('*'); for(var i=0;i<kids.length;i++){ var c=kids[i]; if(c===valEl||c.children.length) continue; var cs=getComputedStyle(c); var fs=parseFloat(cs.fontSize)||0; var t=c.textContent.trim(); if(fs<=13 && t && t.length<30 && (cs.textTransform==='uppercase'||/mono/i.test(cs.fontFamily))) return c; } return null; }
   function seriesFor(s,sel,label,valEl){
     if(/readiness/i.test(label) && Array.isArray(s.readiness) && s.readiness.length>1) return s.readiness.slice();
@@ -2063,7 +2063,7 @@
         k.classList.add('cck-host'); if(cs.position==='static') k.style.position='relative';
         valEl.style.position='relative'; valEl.style.zIndex='2'; if(labEl){ labEl.style.position='relative'; labEl.style.zIndex='2'; }
         var kc=(k.style.getPropertyValue('--kc')||'').trim()||'var(--accent)';
-        var g=document.createElement('div'); g.className='cck-ghost'; g.style.fontSize=Math.max(38,Math.round(H*0.9))+'px'; g.textContent=(''+valEl.textContent).replace(/[$%]/g,'').trim(); g.setAttribute('aria-hidden','true'); k.appendChild(g);
+        var g=document.createElement('div'); g.className='cck-ghost'; g.style.fontSize=Math.max(38,Math.round(H*0.9))+'px'; g.textContent=((''+valEl.textContent).replace(/[^0-9.\/]/g,'').trim())||(''+valEl.textContent).replace(/[$%]/g,'').trim(); g.setAttribute('aria-hidden','true'); k.appendChild(g);
         var label=labEl?labEl.textContent.trim():'';
         var series=seriesFor(s,sel,label,valEl);
         if(series && series.length>1){
