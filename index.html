@@ -2014,7 +2014,7 @@
    trend lines, no duplicate sparklines.
    ==================================================================== */
 (function(){
-  var SELS=['.cc-kpi','.lm-tile','.ch-card','.ch-fn','.mvc-stat','.mvc-splitc'];
+  var SELS=['.cc-kpi','.lm-tile','.hc','.ch-card','.ch-fn','.mvc-stat','.mvc-splitc'];
   function num(t){ var m=(''+t).replace(/[^0-9.\-]/g,''); var n=parseFloat(m); return isNaN(n)?null:n; }
   function spark(vals,color){
     if(!vals||vals.length<2) return '';
@@ -2057,7 +2057,7 @@
       var nodes=document.querySelectorAll(sel);
       for(var i=0;i<nodes.length;i++){ (function(k){
         if(k.__modk) return; 
-        var valEl=findVal(k); if(!valEl){ return; } k.__modk=true;
+        var valEl=findVal(k); if(!valEl){ return; } k.__modk=true; var nativeSvg=!!k.querySelector('svg');
         var labEl=findLabel(k,valEl);
         var cs=getComputedStyle(k); var H=k.getBoundingClientRect().height||80;
         k.classList.add('cck-host'); if(cs.position==='static') k.style.position='relative';
@@ -2068,8 +2068,8 @@
         var series=seriesFor(s,sel,label,valEl);
         if(series && series.length>1){
           var d=series[series.length-1]-series[series.length-2], dir=d>0?'up':d<0?'down':'flat';
-          if(!k.querySelector('.lm-tr') && !k.querySelector('.cck-pill')) k.insertAdjacentHTML('beforeend', pill(dir,(d>0?'+':'')+(Math.round(d*100)/100)));
-          if(!k.querySelector('svg')){ k.insertAdjacentHTML('beforeend', spark(series, kc)); var sk=k.querySelector('.cck-spark'); if(sk) sk.style.height=Math.max(14,Math.round(H*0.2))+'px'; if(parseFloat(cs.paddingBottom)<16) k.style.paddingBottom='18px'; }
+          if(!nativeSvg && !k.querySelector('.lm-tr') && !k.querySelector('.cck-pill')) k.insertAdjacentHTML('beforeend', pill(dir,(d>0?'+':'')+(Math.round(d*100)/100)));
+          if(!nativeSvg){ k.insertAdjacentHTML('beforeend', spark(series, kc)); var sk=k.querySelector('.cck-spark'); if(sk) sk.style.height=Math.max(14,Math.round(H*0.2))+'px'; if(parseFloat(cs.paddingBottom)<16) k.style.paddingBottom='18px'; }
         }
       })(nodes[i]); }
     });
