@@ -1220,7 +1220,7 @@
     try{ var st=LifeOS.get(); st.profile.theme=id; LifeOS.set(st); }catch(e){}
     try{ localStorage.setItem("lifeos.xtheme",id); }catch(e){}
   }
-  function clearMine(){ clearVarsEl(document.documentElement); ZONES.forEach(function(s){ var e; try{ e=document.querySelector(s); }catch(x){} if(e) clearVarsEl(e); }); try{ localStorage.removeItem("lifeos.xtheme"); }catch(e){} }
+  function clearMine(){ clearVarsEl(document.documentElement); ZONES.forEach(function(s){ var e; try{ e=document.querySelector(s); }catch(x){} if(e) clearVarsEl(e); }); try{ localStorage.removeItem("lifeos.xtheme"); }catch(e){} try{ document.documentElement.removeAttribute("data-theme"); }catch(e){} }
   function fill(){
     var g=document.getElementById("theme-grid");
     if(g && !g.querySelector('[data-th="tahoe"]')){
@@ -2100,11 +2100,14 @@
 })();
 
 /* ====================================================================
-   Block 38 — Boundaries: a new sub-section under Identity.
-   Categorized boundaries (Safety, Physiological, Love & Belonging,
-   Esteem, Self-Actualization, Workplace, Intellectual, Material &
-   Financial, Time, Emotional, Health), seeded from the owner's
-   Boundaries doc. Add / remove per category; persists to account.
+   Block 38 — Boundaries: its OWN Identity sub-tab.
+   The banner (#tb-tabs) gains a 5th tab — Values / Beliefs / Strengths /
+   Mission / Boundaries — via a renderTopTabs re-paint hook (SUBNAV is
+   closure-local, so the button is re-added after every base paint).
+   When active, the body under #view-surface is swapped for the
+   categorized boundaries grid (11 categories, seeded from the owner's
+   Boundaries doc). Add / remove per category; persists to account.
+   API: window.LifeOSBoundaries {seed,data,BSEED,add,del,render}.
    ==================================================================== */
 (function(){
   function esc(s){return (''+(s==null?'':s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -2124,14 +2127,15 @@
   var PAL=["#3b6ef6","#22c074","#9466ff","#e0a458","#0e8aa6","#ff5d6c","#6d4bd6","#14b8a6","#e08a1e","#8a5cf6","#0ea5a5"];
   function seed(){ try{ var s=window.LifeOS.get(); s.identity=s.identity||{}; if(!Array.isArray(s.identity.boundaries)||!s.identity.boundaries.length){ s.identity.boundaries=JSON.parse(JSON.stringify(BSEED)); window.LifeOS.set(s); } }catch(e){} }
   function data(){ try{ var s=window.LifeOS.get(); return (s.identity&&s.identity.boundaries)||[]; }catch(e){ return []; } }
-  function save(mut){ try{ var s=window.LifeOS.get(); s.identity=s.identity||{}; s.identity.boundaries=s.identity.boundaries||[]; mut(s.identity.boundaries); window.LifeOS.set(s); }catch(e){} render(); }
-  window.LifeOSBoundaries={ seed:seed, data:data, BSEED:BSEED,
+  function trigger(){ try{ if(window.IdentityEngine&&typeof IdentityEngine.render==='function') IdentityEngine.render(); }catch(e){} }
+  function save(mut){ try{ var s=window.LifeOS.get(); s.identity=s.identity||{}; s.identity.boundaries=s.identity.boundaries||[]; mut(s.identity.boundaries); window.LifeOS.set(s); }catch(e){} trigger(); }
+  window.LifeOSBoundaries={ seed:seed, data:data, BSEED:BSEED, render:trigger,
     add:function(ci,t){ if(!t||!t.trim())return; save(function(B){ if(B[ci]){ B[ci].items=B[ci].items||[]; B[ci].items.push(t.trim()); } }); },
     del:function(ci,ii){ save(function(B){ if(B[ci]&&B[ci].items) B[ci].items.splice(ii,1); }); } };
   function css(){
     if(document.getElementById('lo-bnd-css')||!document.head||!document.getElementById('app'))return;
     document.head.insertAdjacentHTML('beforeend','<style id="lo-bnd-css">'
-      +'#lo-boundaries{margin-top:26px;padding-top:22px;border-top:1px solid var(--line-1)}'
+      +'#lo-boundaries{margin-top:10px}'
       +'#lo-boundaries .bnd-title{font-size:19px;font-weight:800;display:flex;align-items:center;gap:10px;margin:0}'
       +'#lo-boundaries .bnd-tot{font-family:var(--mono);font-size:12px;font-weight:800;color:var(--accent);background:color-mix(in srgb,var(--accent) 15%,transparent);border-radius:999px;padding:2px 9px}'
       +'#lo-boundaries .bnd-sub{color:var(--fg-3);font-size:13px;margin:5px 0 16px}'
@@ -2148,29 +2152,81 @@
       +'</style>');
   }
   function activeIdentity(){ if((location.hash||'').indexOf('identity')>-1) return true; var nb=document.querySelector('.navbtn[data-view="identity"]'); return !!(nb&&nb.classList.contains('on')); }
-  function render(){
-    css(); if(!activeIdentity()) return;
-    var host=document.querySelector('#main .view.on'); if(!host) return; seed();
+  function bndInner(){
     var cats=data(); var total=cats.reduce(function(a,c){return a+((c.items||[]).length);},0);
-    var inner='<h2 class="bnd-title">Boundaries <span class="bnd-tot">'+total+'</span></h2>'
+    return '<h2 class="bnd-title">Boundaries <span class="bnd-tot">'+total+'</span></h2>'
       +'<p class="bnd-sub">The lines I hold to protect my needs — across every layer of life.</p>'
       +'<div class="bnd-grid">'+cats.map(function(c,ci){ var col=PAL[ci%PAL.length];
         return '<div class="bnd-cat" style="--c:'+col+'"><div class="bnd-cat-h">'+esc(c.cat)+' <span>'+((c.items||[]).length)+'</span></div>'
           +'<div class="bnd-items">'+(c.items||[]).map(function(it,ii){ return '<div class="bnd-item"><span>'+esc(it)+'</span><button class="bnd-x" data-del="'+ci+'|'+ii+'" title="Remove">×</button></div>'; }).join('')+'</div>'
           +'<input class="bnd-add" data-add="'+ci+'" placeholder="+ add boundary…"></div>';
       }).join('')+'</div>';
-    var wrap=document.getElementById('lo-boundaries');
-    if(!wrap || wrap.parentNode!==host){ if(wrap) wrap.remove(); wrap=document.createElement('div'); wrap.id='lo-boundaries'; host.appendChild(wrap);
-      wrap.addEventListener('click', function(e){ var x=e.target.closest?e.target.closest('.bnd-x'):null; if(x){ var p=x.getAttribute('data-del').split('|'); window.LifeOSBoundaries.del(+p[0],+p[1]); } });
-      wrap.addEventListener('keydown', function(e){ if(e.key==='Enter'){ var a=e.target.closest?e.target.closest('.bnd-add'):null; if(a){ window.LifeOSBoundaries.add(+a.getAttribute('data-add'), a.value); } } });
-    }
-    if(wrap.getAttribute('data-sig')!==inner){ wrap.setAttribute('data-sig',inner); wrap.innerHTML=inner; }
   }
-  window.LifeOSBoundaries.render=render;
-  function go(){ if(!(document.getElementById('app')&&window.LifeOS))return false;
-    if(!window.__bndWrap && window.IdentityEngine && typeof IdentityEngine.render==='function'){ window.__bndWrap=true; var base=IdentityEngine.render.bind(IdentityEngine); IdentityEngine.render=function(){ var r=base.apply(this,arguments); try{ setTimeout(render,0); }catch(e){} return r; }; }
-    render(); return false; }
-  var iv=setInterval(go,300); if(document.readyState!=='loading') go();
+  function swapBody(){
+    css(); seed();
+    var el=document.getElementById('view-surface'); if(!el) return;
+    var kids=[].slice.call(el.children||[]);
+    for(var i=0;i<kids.length;i++){ var k=kids[i]; var cls=''+(k.className||''); if(cls.indexOf('surf-head')<0){ try{ k.remove(); }catch(e){} } }
+    var wrap=document.createElement('div'); wrap.id='lo-boundaries';
+    wrap.addEventListener('click', function(e){ var x=e.target&&e.target.closest?e.target.closest('.bnd-x'):null; if(x){ var p=x.getAttribute('data-del').split('|'); window.LifeOSBoundaries.del(+p[0],+p[1]); } });
+    wrap.addEventListener('keydown', function(e){ if(e.key==='Enter'){ var a=e.target&&e.target.closest?e.target.closest('.bnd-add'):null; if(a){ window.LifeOSBoundaries.add(+a.getAttribute('data-add'), a.value); } } });
+    wrap.innerHTML=bndInner();
+    el.appendChild(wrap);
+  }
+  function fixBar(){
+    if(!activeIdentity()) return;
+    var el=document.getElementById('tb-tabs'); if(!el||!el.querySelector) return;
+    var tab=(window.IdentityEngine&&IdentityEngine.tab)||'values';
+    var b=el.querySelector('.tb-tab[data-t="boundaries"]');
+    if(!b){
+      var probe=el.querySelector('.tb-tab[data-t="values"]');
+      if(!probe) return; /* identity bar not painted yet */
+      b=document.createElement('button'); b.className='tb-tab'; b.textContent='Boundaries';
+      b.setAttribute('data-t','boundaries'); try{ b.dataset.t='boundaries'; }catch(e){}
+      b.onclick=function(){ try{ IdentityEngine.setTab('boundaries'); }catch(e){} };
+      el.appendChild(b);
+    }
+    var all=[].slice.call(el.querySelectorAll('.tb-tab'));
+    for(var j=0;j<all.length;j++){ var x=all[j]; var t=x.getAttribute('data-t')||(x.dataset&&x.dataset.t); if(x.classList&&x.classList.toggle) x.classList.toggle('on', String(t)===String(tab)); }
+  }
+  function wrapRender(){
+    if(!(window.IdentityEngine&&typeof IdentityEngine.render==='function')) return false;
+    if(IdentityEngine.render.__bnd) return true;
+    var base=IdentityEngine.render.bind(IdentityEngine);
+    IdentityEngine.render=function(){
+      var r;
+      if(this.tab==='boundaries'){
+        var self=this;
+        try{ self.tab='values'; r=base.apply(this,arguments); }finally{ self.tab='boundaries'; }
+        try{ swapBody(); }catch(e){}
+      } else {
+        r=base.apply(this,arguments);
+      }
+      try{ setTimeout(fixBar,0); }catch(e){}
+      return r;
+    };
+    IdentityEngine.render.__bnd=true;
+    return true;
+  }
+  function wrapRTT(){
+    if(typeof window.renderTopTabs!=='function') return false;
+    if(window.renderTopTabs.__bnd) return true;
+    var base=window.renderTopTabs;
+    window.renderTopTabs=function(v){ var r=base.apply(this,arguments); try{ if(v==='identity'||activeIdentity()) setTimeout(fixBar,0); }catch(e){} return r; };
+    try{ Object.keys(base).forEach(function(k){ window.renderTopTabs[k]=base[k]; }); }catch(e){}
+    window.renderTopTabs.__bnd=true;
+    return true;
+  }
+  function go(){
+    if(!(document.getElementById('app')&&window.LifeOS)) return false;
+    var a=wrapRender(), b=wrapRTT();
+    if(a&&b){ try{ if(activeIdentity()) fixBar(); }catch(e){} return true; }
+    return false;
+  }
+  if(typeof window.addEventListener==='function') window.addEventListener('hashchange', function(){ setTimeout(go,60); });
+  var __bts=[60,350,1000,2500]; for(var __bi=0;__bi<__bts.length;__bi++) setTimeout(go,__bts[__bi]);
+  var __biv=setInterval(function(){ if(go()) clearInterval(__biv); },3000);
+  if(document.readyState!=='loading') go();
 })();
 
 /* ====================================================================
@@ -2564,6 +2620,365 @@
   if(typeof window.addEventListener==="function") window.addEventListener("hashchange",function(){ setTimeout(clean,60); setTimeout(clean,350); });
   if(document.readyState!=="loading") clean();
 })();
+/* ====================================================================
+   Block 49 — Learning: "Things to Learn" sub-tab.
+   Learning has NO SUBNAV entry (the banner clears on this view), so
+   this block owns #tb-tabs on Learning: Overview | Things to Learn.
+   The sub-tab renders a capture list (add / done / delete) persisted
+   to state.learnToLearn. API: window.LifeOSLearn
+   {tab,setTab,data,add,del,toggle,render}.
+   ==================================================================== */
+(function(){
+  function esc(s){return (''+(s==null?'':s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function nid(){ return 'tl'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+  function items(){ try{ var s=window.LifeOS.get(); return Array.isArray(s.learnToLearn)?s.learnToLearn:[]; }catch(e){ return []; } }
+  function saveItems(mut){ try{ var s=window.LifeOS.get(); if(!Array.isArray(s.learnToLearn)) s.learnToLearn=[]; mut(s.learnToLearn); window.LifeOS.set(s); }catch(e){} trigger(); }
+  function trigger(){ try{ if(window.LearningEngine&&typeof LearningEngine.render==='function') LearningEngine.render(); }catch(e){} }
+  window.LifeOSLearn={ tab:'overview',
+    setTab:function(t){ this.tab=(t==='tolearn')?'tolearn':'overview'; trigger(); try{ setTimeout(fixBar,0); }catch(e){} },
+    data:items, render:trigger,
+    add:function(txt,note){ if(!txt||!txt.trim())return; window.__tlFocus=true; saveItems(function(L){ L.unshift({id:nid(),txt:txt.trim(),note:(note||'').trim(),done:false,added:new Date().toISOString().slice(0,10)}); }); },
+    del:function(id){ saveItems(function(L){ for(var i=0;i<L.length;i++){ if(L[i].id===id){ L.splice(i,1); return; } } }); },
+    toggle:function(id){ saveItems(function(L){ for(var i=0;i<L.length;i++){ if(L[i].id===id){ L[i].done=!L[i].done; return; } } }); } };
+  function css(){
+    if(document.getElementById('lo-tolearn-css')||!document.head||!document.getElementById('app'))return;
+    document.head.insertAdjacentHTML('beforeend','<style id="lo-tolearn-css">'
+      +'#lo-tolearn{margin-top:10px}'
+      +'#lo-tolearn .tl-title{font-size:19px;font-weight:800;display:flex;align-items:center;gap:10px;margin:0}'
+      +'#lo-tolearn .tl-tot{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent);border-radius:999px;padding:2px 9px}'
+      +'#lo-tolearn .tl-sub{color:var(--fg-3);font-size:13px;margin:5px 0 14px}'
+      +'#lo-tolearn .tl-add{width:100%;border:1px dashed var(--line-2);border-radius:10px;background:var(--bg-1);padding:10px 13px;font-size:13px;color:var(--fg-1);outline:none;margin-bottom:14px}'
+      +'#lo-tolearn .tl-add:focus{border-color:var(--accent);border-style:solid}'
+      +'#lo-tolearn .tl-list{border:1px solid var(--line-1);border-radius:var(--r-md,13px);background:var(--bg-2);overflow:hidden}'
+      +'#lo-tolearn .tl-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-top:1px solid var(--line-1)}'
+      +'#lo-tolearn .tl-item:first-child{border-top:0}'
+      +'#lo-tolearn .tl-chk{width:20px;height:20px;flex:none;border-radius:6px;border:1px solid var(--line-2);background:var(--bg-1);color:#fff;cursor:pointer;font-size:12px;line-height:1;display:grid;place-items:center;padding:0}'
+      +'#lo-tolearn .tl-item.done .tl-chk{background:var(--accent);border-color:var(--accent)}'
+      +'#lo-tolearn .tl-txt{flex:1;min-width:0;font-size:13.5px;color:var(--fg-1)}'
+      +'#lo-tolearn .tl-txt b{font-weight:600}'
+      +'#lo-tolearn .tl-txt span{display:block;font-size:11.5px;color:var(--fg-3);margin-top:1px}'
+      +'#lo-tolearn .tl-item.done .tl-txt{opacity:.55;text-decoration:line-through}'
+      +'#lo-tolearn .tl-when{font-family:var(--mono);font-size:10.5px;color:var(--fg-4);flex:none}'
+      +'#lo-tolearn .tl-x{opacity:0;border:none;background:none;color:var(--fg-4);cursor:pointer;font-size:15px;flex:none}'
+      +'#lo-tolearn .tl-item:hover .tl-x{opacity:1}#lo-tolearn .tl-x:hover{color:var(--bad)}'
+      +'#lo-tolearn .tl-empty{padding:22px 16px;color:var(--fg-3);font-size:13px}'
+      +'</style>');
+  }
+  function activeLearning(){ if((location.hash||'').indexOf('learning')>-1) return true; var nb=document.querySelector('.navbtn[data-view="learning"]'); return !!(nb&&nb.classList.contains('on')); }
+  function inner(){
+    var L=items(); var open=0; for(var i=0;i<L.length;i++){ if(!L[i].done) open++; }
+    return '<h2 class="tl-title">Things to Learn <span class="tl-tot">'+open+' open · '+L.length+' total</span></h2>'
+      +'<p class="tl-sub">Capture it the moment curiosity strikes — commit deliberately.</p>'
+      +'<input class="tl-add" placeholder="+ something to learn… (Enter to add)">'
+      +'<div class="tl-list">'+(L.length? L.map(function(it){ return '<div class="tl-item'+(it.done?' done':'')+'"><button class="tl-chk" data-tgl="'+esc(it.id)+'" title="Done">'+(it.done?'✓':'')+'</button><div class="tl-txt"><b>'+esc(it.txt)+'</b>'+(it.note?'<span>'+esc(it.note)+'</span>':'')+'</div><span class="tl-when">'+esc(it.added||'')+'</span><button class="tl-x" data-del="'+esc(it.id)+'" title="Remove">×</button></div>'; }).join('') : '<div class="tl-empty">Nothing captured yet. Add the first thing you want to learn.</div>')+'</div>';
+  }
+  function swapBody(){
+    css();
+    var el=document.getElementById('view-surface'); if(!el) return;
+    var kids=[].slice.call(el.children||[]);
+    for(var i=0;i<kids.length;i++){ var k=kids[i]; var cls=''+(k.className||''); if(cls.indexOf('surf-head')<0){ try{ k.remove(); }catch(e){} } }
+    var wrap=document.createElement('div'); wrap.id='lo-tolearn';
+    wrap.addEventListener('click', function(e){ var t=e.target; var d=t&&t.closest?t.closest('.tl-x'):null; if(d){ window.LifeOSLearn.del(d.getAttribute('data-del')); return; } var g=t&&t.closest?t.closest('.tl-chk'):null; if(g){ window.LifeOSLearn.toggle(g.getAttribute('data-tgl')); } });
+    wrap.addEventListener('keydown', function(e){ if(e.key==='Enter'){ var a=e.target&&e.target.closest?e.target.closest('.tl-add'):null; if(a){ window.LifeOSLearn.add(a.value); } } });
+    wrap.innerHTML=inner();
+    el.appendChild(wrap);
+    try{ if(window.__tlFocus){ window.__tlFocus=false; var inp=wrap.querySelector('.tl-add'); if(inp&&inp.focus) inp.focus(); } }catch(e){}
+  }
+  function fixBar(){
+    if(!activeLearning()) return;
+    var el=document.getElementById('tb-tabs'); if(!el||!el.querySelectorAll) return;
+    var tab=(window.LifeOSLearn&&LifeOSLearn.tab)||'overview';
+    var have=el.querySelector?el.querySelector('.tb-tab[data-t="tolearn"]'):null;
+    if(!have){
+      el.innerHTML='';
+      var defs=[['overview','Overview'],['tolearn','Things to Learn']];
+      for(var i=0;i<defs.length;i++){ (function(d){ var b=document.createElement('button'); b.className='tb-tab'; b.textContent=d[1]; b.setAttribute('data-t',d[0]); try{ b.dataset.t=d[0]; }catch(e){} b.onclick=function(){ window.LifeOSLearn.setTab(d[0]); }; el.appendChild(b); })(defs[i]); }
+    }
+    var all=[].slice.call(el.querySelectorAll('.tb-tab'));
+    for(var j=0;j<all.length;j++){ var x=all[j]; var t=x.getAttribute('data-t')||(x.dataset&&x.dataset.t); if(x.classList&&x.classList.toggle) x.classList.toggle('on', String(t)===String(tab)); }
+  }
+  function wrapRender(){
+    if(!(window.LearningEngine&&typeof LearningEngine.render==='function')) return false;
+    if(LearningEngine.render.__tl) return true;
+    var base=LearningEngine.render.bind(LearningEngine);
+    LearningEngine.render=function(){
+      var r=base.apply(this,arguments);
+      try{ if(window.LifeOSLearn&&LifeOSLearn.tab==='tolearn'&&activeLearning()) swapBody(); }catch(e){}
+      try{ setTimeout(fixBar,0); }catch(e){}
+      return r;
+    };
+    LearningEngine.render.__tl=true;
+    return true;
+  }
+  function wrapRTT(){
+    if(typeof window.renderTopTabs!=='function') return false;
+    if(window.renderTopTabs.__tl) return true;
+    var base=window.renderTopTabs;
+    window.renderTopTabs=function(v){ var r=base.apply(this,arguments); try{ if(v==='learning'||activeLearning()) setTimeout(fixBar,0); }catch(e){} return r; };
+    try{ Object.keys(base).forEach(function(k){ window.renderTopTabs[k]=base[k]; }); }catch(e){}
+    window.renderTopTabs.__tl=true;
+    return true;
+  }
+  function go(){
+    if(!(document.getElementById('app')&&window.LifeOS)) return false;
+    var a=wrapRender(), b=wrapRTT();
+    if(a&&b){ try{ if(activeLearning()) fixBar(); }catch(e){} return true; }
+    return false;
+  }
+  if(typeof window.addEventListener==='function') window.addEventListener('hashchange', function(){ setTimeout(go,60); });
+  var __ts=[60,350,1000,2500]; for(var __ti=0;__ti<__ts.length;__ti++) setTimeout(go,__ts[__ti]);
+  var __tiv=setInterval(function(){ if(go()) clearInterval(__tiv); },3000);
+  if(document.readyState!=='loading') go();
+})();
+
+/* ====================================================================
+   Block 50 — Practices span the full width. #practice-list itself is
+   the .grid3 (auto-fill ~300px tracks) and the practices register is
+   its ONLY child, so it was trapped in one ~327px column with empty
+   tracks beside it. Collapse the grid to a single full-width column.
+   Persist through the boot-time style strip (ensure + slow interval).
+   ==================================================================== */
+(function(){
+  function ensure(){ if(document.getElementById('lo-pracwide-css')) return;
+    var css=document.createElement('style'); css.id='lo-pracwide-css';
+    css.textContent='#view-practices .grid3,#practice-list.grid3{grid-template-columns:1fr !important}'
+      +'#view-practices .lr-rows{grid-template-columns:1fr !important}'
+      +'#prac-lrhost{max-width:none !important;width:100% !important}';
+    (document.head||document.documentElement).appendChild(css);
+  }
+  ensure(); setInterval(ensure,3000);
+  window.LifeOSPracWide={ ensure:ensure };
+})();
+
+/* ====================================================================
+   Block 51 — Bill Tracker: full-year Jan–Dec paid matrix + year nav.
+   Upgrades the 6-trailing-months bills matrix to a row per bill with
+   all 12 months of a selectable year (‹ 2026 ›). Paid flags stay in
+   bill.paidMonths keyed "YYYY-MM", so history carries across years.
+   Reuses MoneyEngine.toggleBillMonth / addC / delC and the .bm table
+   styling. API: window.LifeOSBillYear {months12}.
+   ==================================================================== */
+(function(){
+  function st(){ try{ return window.LifeOS?window.LifeOS.get():{}; }catch(e){ return {}; } }
+  var E=function(s){ return (''+(s==null?'':s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
+  function months12(y){ var out=[],now=new Date(); for(var m=0;m<12;m++){ var d=new Date(y,m,1); out.push({ ym:y+'-'+(m+1<10?'0':'')+(m+1), label:d.toLocaleDateString(undefined,{month:'short'}), cur:(y===now.getFullYear()&&m===now.getMonth()) }); } return out; }
+  window.LifeOSBillYear={ months12:months12 };
+  function css(){ if(document.getElementById('lo-billyear-css')||!document.head)return;
+    document.head.insertAdjacentHTML('beforeend','<style id="lo-billyear-css">'
+    +'.bm-yearbar{display:flex;align-items:center;gap:10px;margin:0 0 10px}'
+    +'.bm-yearbar .yb-b{border:1px solid var(--line-2);background:var(--bg-2);color:var(--fg-2);border-radius:8px;width:26px;height:26px;cursor:pointer;font-size:13px;line-height:1}'
+    +'.bm-yearbar .yb-b:hover{color:var(--fg-1);border-color:var(--accent)}'
+    +'.bm-yearbar .yb-y{font-family:var(--mono);font-weight:800;font-size:14px;color:var(--fg-1)}'
+    +'.bm-yearbar .yb-n{font-size:11px;color:var(--fg-4);font-family:var(--mono)}'
+    +'.bm-paidpill{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent);border-radius:999px;padding:1px 7px;margin-left:8px}'
+    +'</style>'); }
+  function install(){
+    var M=window.MoneyEngine;
+    if(!M) return false;
+    if(typeof M.tab_bills!=='function') return false;
+    if(M.tab_bills.__yr) return true;
+    M.__billYear=M.__billYear||(new Date()).getFullYear();
+    M.billYear=function(d){ M.__billYear=(+M.__billYear||new Date().getFullYear())+(d|0); try{ M.tab_bills(); }catch(e){} };
+    M.tab_bills=function(){
+      css();
+      var b=document.getElementById('m-body'); if(!b) return;
+      var s=st(); var bills=(s.bills||[]); var y=+M.__billYear||new Date().getFullYear(); var ms=months12(y);
+      var nowYm=(function(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1); })();
+      for(var mi=0; mi<bills.length; mi++){ var x=bills[mi]; if(x.paid==='yes' && !(x.paidMonths&&Object.keys(x.paidMonths).length)){ x.paidMonths=x.paidMonths||{}; x.paidMonths[nowYm]=true; } }
+      var head='<tr><th class="bm-lead">Bill</th><th class="bm-lead">Amount</th>'+ms.map(function(m){return '<th class="bm-m'+(m.cur?' cur':'')+'">'+E(m.label)+'</th>';}).join('')+'<th></th></tr>';
+      var body=bills.map(function(r){
+        var paid=r.paidMonths||{}; var n=0; for(var i2=0;i2<ms.length;i2++){ if(paid[ms[i2].ym]) n++; }
+        var cells=ms.map(function(m){ var on=!!paid[m.ym]; return '<td class="bm-c'+(m.cur?' cur':'')+'"><button class="bm-dot'+(on?' on':'')+'" onclick="MoneyEngine.toggleBillMonth(\''+r.id+'\',\''+m.ym+'\')" title="'+E((on?'Paid ':'Unpaid ')+m.ym)+'">'+(on?'✓':'')+'</button></td>'; }).join('');
+        return '<tr><td class="bm-ld"><b>'+E(r.name)+'</b>'+(r.due?'<span class="bm-sub">due '+E(r.due)+'</span>':'')+'<span class="bm-paidpill">'+n+'/12</span></td><td class="bm-ld"><span class="bm-amt">$'+E(r.amount||0)+'</span></td>'+cells+'<td class="bm-x"><button class="bm-del" title="Remove">✕</button></td></tr>';
+      }).join('');
+      b.innerHTML='<p class="sub" style="margin:0 0 10px">One row per bill — the whole year at a glance. Tap a month to mark it paid.</p>'
+        +'<div class="bm-yearbar"><button class="yb-b" onclick="MoneyEngine.billYear(-1)" title="Previous year">‹</button><span class="yb-y">'+y+'</span><button class="yb-b" onclick="MoneyEngine.billYear(1)" title="Next year">›</button><span class="yb-n">paid flags stored per month · year</span></div>'
+        +'<div class="bm-tools"><button class="btn small" onclick="MoneyEngine.addC(\'bills\')">+ Bill</button></div>'
+        +(bills.length?'<div class="bm-wrap"><table class="bm">'+head+body+'</table></div>':'<div class="lr-empty2" style="margin-top:8px">No bills yet.</div>');
+      var dels=b.querySelectorAll('.bm-del');
+      for(var di=0; di<dels.length; di++){ (function(i3){ dels[i3].onclick=function(){ try{ M.delC('bills', bills[i3].id); }catch(e){} }; })(di); }
+    };
+    M.tab_bills.__yr=true;
+    return true;
+  }
+  var __ys=[80,400,1200,3000]; for(var __yi=0;__yi<__ys.length;__yi++) setTimeout(install,__ys[__yi]);
+  var __yiv=setInterval(function(){ if(install()) clearInterval(__yiv); },3000);
+  if(document.readyState!=='loading') install();
+})();
+
+/* ====================================================================
+   Block 52 — Tasks kanban = the uploaded InsuletOS Ops Board, as-is.
+   Faithful port of the Ops Board card system (620 KB upload, decoded
+   from its text/x-dc component): #050507 canvas, per-lane gradient
+   washes, gradient column headers with 3px neon accents, gradient
+   cards (#1b1b28→#151520) with 13px radius + left priority bar,
+   Space Grotesk titles / JetBrains Mono ids / Inter chips, lime→pink
+   neon palette (#D4FF3A / #FF2EC7 / #2A6BFF / #9FD000), urgent glow.
+   Takes over style#lo-board-css from Block 36 (same id, richer skin).
+   No transform on hover (hover-lock decision) — glow shift only.
+   API: window.LifeOSBoardX {ensure, CSS}.
+   ==================================================================== */
+(function(){
+  var CSS=''
+    +'#view-tasks #task-board.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;align-items:start;background:#050507;border:1px solid #1E1E2E;border-radius:16px;padding:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}'
+    +'@media(max-width:900px){#view-tasks #task-board.board{grid-template-columns:1fr 1fr}}'
+    +'#view-tasks #task-board .col{border:1px solid #16161F;border-radius:14px;padding:10px 10px 12px;min-height:150px}'
+    +'#view-tasks #task-board .col:nth-child(1){--lc:#8A8AA3;background:linear-gradient(180deg,rgba(255,255,255,.028),transparent 58%),#0B0B12}'
+    +'#view-tasks #task-board .col:nth-child(2){--lc:#D4FF3A;background:linear-gradient(180deg,rgba(212,255,58,.07),transparent 55%),#0B0B12}'
+    +'#view-tasks #task-board .col:nth-child(3){--lc:#FF2EC7;background:linear-gradient(180deg,rgba(255,46,199,.08),transparent 55%),#0C0A11}'
+    +'#view-tasks #task-board .col:nth-child(4){--lc:#9FD000;background:linear-gradient(180deg,rgba(159,208,0,.04),transparent 55%),#0A0A0F}'
+    +'#view-tasks #task-board .col>h3{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:9px;margin:0 0 11px;padding:11px 14px 13px;background:linear-gradient(180deg,#141422,#0E0E17);border:1px solid #2A2A3D;border-left:3px solid var(--lc,#D4FF3A);border-radius:13px;border-bottom:1px solid #2A2A3D;font-family:"Space Grotesk",var(--sans,sans-serif);font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#F4F4FA}'
+    +'#view-tasks #task-board .col>h3 span{font-family:"JetBrains Mono",var(--mono,monospace);font-size:10px;font-weight:700;color:var(--lc,#D4FF3A);background:color-mix(in srgb,var(--lc,#D4FF3A) 14%,transparent);border:1px solid color-mix(in srgb,var(--lc,#D4FF3A) 22%,transparent);border-radius:999px;padding:2px 8px;line-height:1.5}'
+    +'#view-tasks #task-board .col .task,#view-tasks #task-board .col .task-row,#view-tasks #task-board .col [data-id]{position:relative;overflow:hidden;background:linear-gradient(180deg,#1b1b28,#151520);border:1px solid #2A2A3D;border-left:3px solid var(--lc,#8A8AA3);border-radius:13px;padding:13px 14px 13px 17px;margin-bottom:10px;cursor:grab;color:#F4F4FA;box-shadow:0 3px 12px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.045);transition:border-color .18s,box-shadow .18s}'
+    +'#view-tasks #task-board .col .task:hover,#view-tasks #task-board .col .task-row:hover,#view-tasks #task-board .col [data-id]:hover{border-color:color-mix(in srgb,var(--lc,#D4FF3A) 45%,#2A2A3D);box-shadow:0 0 22px color-mix(in srgb,var(--lc,#D4FF3A) 14%,transparent),0 6px 18px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05)}'
+    +'#view-tasks #task-board .col .task,#view-tasks #task-board .col .task-row{font-family:"Space Grotesk",var(--sans,sans-serif);font-weight:600;font-size:13.5px;line-height:1.34;letter-spacing:-.1px}'
+    +'#view-tasks #task-board .col .task-row *,#view-tasks #task-board .col .task *{color:#F4F4FA}'
+    +'#view-tasks #task-board .col .task-row small,#view-tasks #task-board .col .task small,#view-tasks #task-board .col .task-row .sub,#view-tasks #task-board .col .task .sub,#view-tasks #task-board .col .task-row [class*="meta"],#view-tasks #task-board .col .task [class*="meta"]{font-family:"Inter",var(--sans,sans-serif);font-weight:600;font-size:10.5px;color:#B8B8CC !important}'
+    +'#view-tasks #task-board .col .task-row [class*="pill"],#view-tasks #task-board .col .task [class*="pill"],#view-tasks #task-board .col .task-row [class*="tag"],#view-tasks #task-board .col .task [class*="tag"],#view-tasks #task-board .col .task-row [class*="chip"],#view-tasks #task-board .col .task [class*="chip"]{font-family:"Inter",var(--sans,sans-serif);font-weight:600;font-size:10px;padding:2px 7px;border-radius:6px;background:rgba(255,255,255,.05) !important;color:#B8B8CC !important;border:1px solid rgba(255,255,255,.06)}'
+    +'#view-tasks #task-board .col:nth-child(4) .task,#view-tasks #task-board .col:nth-child(4) .task-row,#view-tasks #task-board .col:nth-child(4) [data-id]{background:linear-gradient(180deg,#121219,#0D0D14);opacity:.84}'
+    +'#view-tasks #task-board .col:nth-child(4) .task-row *,#view-tasks #task-board .col:nth-child(4) .task *{color:#B4B4C6}'
+    +'#view-tasks #task-board .col:nth-child(3) .task,#view-tasks #task-board .col:nth-child(3) .task-row,#view-tasks #task-board .col:nth-child(3) [data-id]{background:linear-gradient(180deg,rgba(255,46,199,.09),rgba(255,46,199,.02)),#141019;border-color:rgba(255,46,199,.26)}'
+    +'#view-tasks #task-board .col .task-row button,#view-tasks #task-board .col .task button{color:#B8B8CC}'
+    +'#view-tasks #task-board .col>button,#view-tasks #task-board .col .add,#view-tasks #task-board .col [class*="add"]{font-family:"Space Grotesk",var(--sans,sans-serif);font-weight:600;font-size:12px;color:#B8B8CC;background:transparent;border:1px dashed #2A2A3D;border-radius:10px;padding:8px 12px;width:100%;cursor:pointer;transition:.15s}'
+    +'#view-tasks #task-board .col>button:hover,#view-tasks #task-board .col [class*="add"]:hover{color:#050507;background:#D4FF3A;border-color:#D4FF3A}';
+  function ensure(){
+    if(!document.getElementById('app')) return;
+    var el=document.getElementById('lo-board-css');
+    if(el){ if(el.textContent!==CSS){ try{ el.textContent=CSS; }catch(e){} } }
+    else if(document.head){ el=document.createElement('style'); el.id='lo-board-css'; el.textContent=CSS; (document.head||document.documentElement).appendChild(el); }
+    if(!document.getElementById('lo-board-fonts')&&document.head){ var l=document.createElement('link'); l.id='lo-board-fonts'; l.rel='stylesheet'; l.href='https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=JetBrains+Mono:wght@600;700&family=Space+Grotesk:wght@500;600;700&display=swap'; document.head.appendChild(l); }
+  }
+  ensure(); setInterval(ensure,3000);
+  if(typeof window.addEventListener==='function') window.addEventListener('hashchange', function(){ setTimeout(ensure,80); });
+  window.LifeOSBoardX={ ensure:ensure, CSS:CSS };
+})();
+
+/* ====================================================================
+   Block 53 — TRUE design-system themes. Block 23 swaps color tokens;
+   this layer makes each theme a full identity — body/display type,
+   page-background treatments, chrome, buttons, eyebrows, motion and
+   texture — per the canonical systems on the AgentOS drive:
+   · Tahoe (073): "grounded, spacious, quiet" — Fraunces display,
+     Inter UI, cool granite light, crisp #0076bc / cove #02a085.
+   · Desert Night / Dune & Dusk (074): Cormorant display, Inter Tight
+     body; ember #ee8a4c is the ONLY loud color; uppercase gold
+     eyebrows tracked +.32em; 280ms glide; no pure black.
+   · Sunny Beach (078): Instrument Serif italic display, Outfit body,
+     sand paper + lagoon/sun wash, pill shapes.
+   · Bloom (077): "Bold. Intentional. Fierce." Fraunces display,
+     Space Grotesk body, Caveat script eyebrows, hot-pink gradient
+     buttons, petal radii.
+   · Reef (075 Insulet DS): IBM Plex Sans, grape/aqua/mango on oyster.
+   · Crystal Lagoon: Cormorant on warm sand paper, teal + amber.
+   · Palmwave (Ops Board): Space Grotesk on #050507, lime/pink neon,
+     grain + glow.
+   Scoped by html[data-theme=…] (set by Block 23's applyMine), so the
+   stock themes stay untouched. API: window.LifeOSThemesX {ensure,CSS}.
+   ==================================================================== */
+(function(){
+  var G='html[data-theme="';
+  function T(id,rules){ return rules.map(function(r){ return G+id+'"] '+r; }).join(''); }
+  var CSS=''
+  /* ---- shared: themed transitions ---- */
+  +'html[data-theme] .btn,html[data-theme] .navbtn,html[data-theme] .tb-tab{transition:background .2s var(--ease,ease),color .2s var(--ease,ease),box-shadow .2s var(--ease,ease),border-color .2s var(--ease,ease)}'
+  /* ================= TAHOE — grounded · spacious · quiet ================= */
+  +T('tahoe',[
+    'body{font-family:"Inter","Plus Jakarta Sans",-apple-system,sans-serif !important}',
+    '#main{background:radial-gradient(1100px 420px at 82% -6%,rgba(2,160,133,.07),transparent 62%),linear-gradient(180deg,#eef5fb,#f7fafd 45%,#eef5fb)}',
+    '#topbar{background:linear-gradient(180deg,#0a3a5c,#0b3352) !important;box-shadow:inset 0 -1px 0 rgba(2,160,133,.35),0 1px 12px rgba(10,58,92,.25)}',
+    'h1,.sec{font-family:"Fraunces",Georgia,serif !important;font-weight:600;letter-spacing:-.01em}',
+    '.eyebrow{font-family:var(--mono);letter-spacing:.18em;text-transform:uppercase}',
+    '.btn{border-radius:9px;box-shadow:0 1px 2px rgba(20,50,70,.12)}',
+    '.navbtn.on{box-shadow:inset 3px 0 0 #02a085}'
+  ])
+  /* ============ DESERT NIGHT — quiet, vast, warm at the edges ============ */
+  +'html[data-theme="desertnight"]{--ease:cubic-bezier(.22,.61,.36,1);--sans:"Inter Tight",Inter,-apple-system,sans-serif}'
+  +T('desertnight',[
+    'body{font-family:"Inter Tight",Inter,-apple-system,sans-serif !important}',
+    '#main{background:radial-gradient(900px 280px at 50% 104%,rgba(238,138,76,.13),transparent 64%),radial-gradient(700px 300px at 88% -10%,rgba(231,217,168,.05),transparent 60%),linear-gradient(180deg,#00091e 0%,#011635 70%,#03204a 100%)}',
+    '#topbar{background:linear-gradient(180deg,#011635,#00102b) !important;box-shadow:inset 0 -1px 0 rgba(192,138,82,.4),0 1px 14px rgba(0,0,0,.5)}',
+    'h1{font-family:"Cormorant Garamond","Source Serif 4",Georgia,serif !important;font-weight:600;letter-spacing:.01em}',
+    '.sec{font-family:"Cormorant Garamond",Georgia,serif !important;font-weight:600}',
+    '.eyebrow{font-family:var(--mono) !important;letter-spacing:.32em !important;text-transform:uppercase !important;color:#c08a52 !important;font-size:9.5px}',
+    '.btn{border-radius:8px;border:1px solid rgba(238,138,76,.55);background:transparent;color:#ee8a4c;box-shadow:none}',
+    '.btn:hover{background:#ee8a4c;color:#1a0e06}',
+    '.navbtn.on{box-shadow:inset 3px 0 0 #ee8a4c}',
+    '#main [class*="card"],#main .lr-row,#main .lr-wrap{border-color:#0d3863}'
+  ])
+  +'html[data-theme="desertnight"] body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:2147480000;opacity:.028;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27160%27 height=%27160%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%27.9%27 numOctaves=%272%27/%3E%3C/filter%3E%3Crect width=%27160%27 height=%27160%27 filter=%27url(%23n)%27/%3E%3C/svg%3E")}'
+  /* ============== SUNNY BEACH — teleport me to the beach ============== */
+  +T('sunny',[
+    'body{font-family:"Outfit","Plus Jakarta Sans",-apple-system,sans-serif !important}',
+    '#main{background:radial-gradient(760px 300px at 82% -8%,rgba(245,158,11,.16),transparent 60%),radial-gradient(900px 340px at -6% 108%,rgba(6,182,212,.10),transparent 62%),linear-gradient(180deg,#fffdf3,#fff8e6 35%,#fffdf3)}',
+    '#topbar{background:linear-gradient(90deg,#0e7490,#0d8a9e 60%,#0e7490) !important;box-shadow:inset 0 -1px 0 rgba(245,158,11,.55),0 1px 12px rgba(14,116,144,.28)}',
+    'h1{font-family:"Instrument Serif",Georgia,serif !important;font-style:italic;font-weight:400;letter-spacing:.005em}',
+    '.sec{font-family:"Instrument Serif",Georgia,serif !important;font-style:italic;font-weight:400}',
+    '.eyebrow{font-family:"Outfit",sans-serif !important;letter-spacing:.22em;text-transform:uppercase;font-weight:700}',
+    '.btn{border-radius:999px;box-shadow:0 2px 10px rgba(245,158,11,.28)}',
+    '.navbtn.on{box-shadow:inset 3px 0 0 #06b6d4}',
+    '#tb-tabs .tb-tab{border-radius:999px}'
+  ])
+  /* ================== BLOOM — Bold. Intentional. Fierce. ================== */
+  +T('bloom',[
+    'body{font-family:"Space Grotesk","Plus Jakarta Sans",-apple-system,sans-serif !important}',
+    '#main{background:radial-gradient(820px 330px at 88% -8%,rgba(239,26,107,.10),transparent 62%),radial-gradient(700px 300px at -4% 106%,rgba(255,106,26,.08),transparent 60%),linear-gradient(180deg,#fffbf7,#fdf0ea 40%,#fffbf7)}',
+    '#topbar{background:linear-gradient(90deg,#3f2e27,#4a332a) !important;box-shadow:inset 0 -2px 0 #ef1a6b,0 1px 12px rgba(63,46,39,.3)}',
+    'h1,.sec{font-family:"Fraunces",Georgia,serif !important;font-weight:700;letter-spacing:-.015em}',
+    '.eyebrow{font-family:"Caveat",cursive !important;text-transform:none !important;letter-spacing:0 !important;font-size:17px !important;font-weight:600;color:#ef1a6b !important}',
+    '.btn{border-radius:999px;background:linear-gradient(90deg,#ef1a6b,#ff6a1a);border:none;color:#fff;box-shadow:0 4px 16px -4px rgba(200,40,90,.45)}',
+    '.btn.ghost,.btn.small.ghost{background:transparent;color:#ef1a6b;border:1.5px solid #ef1a6b}',
+    '.navbtn.on{box-shadow:inset 3px 0 0 #ef1a6b}'
+  ])
+  /* ============== REEF — tropical Insulet DS: grape · aqua · mango ============== */
+  +T('reef',[
+    'body{font-family:"IBM Plex Sans","Plus Jakarta Sans",-apple-system,sans-serif !important}',
+    '#main{background:radial-gradient(900px 360px at -6% -10%,rgba(116,61,188,.08),transparent 60%),radial-gradient(760px 300px at 106% 108%,rgba(5,150,159,.08),transparent 62%),linear-gradient(180deg,#f6f1fc,#faf7fe 45%,#f6f1fc)}',
+    '#topbar{background:linear-gradient(90deg,#3b0862,#4d1080) !important;box-shadow:inset 0 -1px 0 rgba(255,167,0,.55),0 1px 12px rgba(59,8,98,.3)}',
+    'h1,.sec{font-family:"Newsreader",Georgia,serif !important;font-weight:600}',
+    '.eyebrow{font-family:"IBM Plex Mono",var(--mono) !important;letter-spacing:.16em;text-transform:uppercase;color:#05969f !important}',
+    '.btn{border-radius:10px;background:#743dbc;box-shadow:0 2px 8px rgba(116,61,188,.3)}',
+    '.navbtn.on{box-shadow:inset 3px 0 0 #ffa700}'
+  ])
+  /* ============ CRYSTAL LAGOON — serif calm on warm sand paper ============ */
+  +T('lagoon',[
+    'body{font-family:"Plus Jakarta Sans",-apple-system,sans-serif !important}',
+    '#main{background:radial-gradient(880px 340px at 90% -8%,rgba(18,144,155,.09),transparent 62%),linear-gradient(180deg,#f7f3ec,#f3eee4 45%,#f7f3ec)}',
+    '#topbar{background:linear-gradient(180deg,#0b3f47,#0a3840) !important;box-shadow:inset 0 -1px 0 rgba(232,145,42,.5)}',
+    'h1,.sec{font-family:"Cormorant Garamond",Georgia,serif !important;font-weight:600}',
+    '.eyebrow{letter-spacing:.2em;text-transform:uppercase;color:#c9781c !important}',
+    '.btn{border-radius:10px;background:#12909b}',
+    '.navbtn.on{box-shadow:inset 3px 0 0 #e8912a}'
+  ])
+  /* ============= PALMWAVE — Ops Board neon: lime · pink · void ============= */
+  +'html[data-theme="palmwave"]{--ease:cubic-bezier(.22,.61,.36,1)}'
+  +T('palmwave',[
+    'body{font-family:"Space Grotesk",-apple-system,sans-serif !important}',
+    '#main{background:radial-gradient(1100px 460px at 86% -6%,rgba(255,46,199,.07),transparent 60%),radial-gradient(950px 400px at 6% 108%,rgba(212,255,58,.055),transparent 60%),#050507}',
+    '#topbar{background:linear-gradient(180deg,#0b0b12,#08080d) !important;box-shadow:inset 0 -1px 0 rgba(212,255,58,.5),0 2px 18px rgba(255,46,199,.10)}',
+    'h1{font-family:"Space Grotesk",sans-serif !important;font-weight:700;letter-spacing:-.03em}',
+    '.sec{font-family:"Space Grotesk",sans-serif !important;font-weight:700;letter-spacing:-.01em}',
+    '.eyebrow{font-family:"JetBrains Mono",var(--mono) !important;letter-spacing:.24em;text-transform:uppercase;color:#d4ff3a !important}',
+    '.btn{border-radius:6px;background:#d4ff3a;color:#0a0a00;border:none;font-weight:700;box-shadow:0 0 18px rgba(212,255,58,.25)}',
+    '.btn:hover{background:#ff2ec7;color:#fff;box-shadow:0 0 20px rgba(255,46,199,.35)}',
+    '.navbtn.on{box-shadow:inset 3px 0 0 #d4ff3a}',
+    '#main .lr-row,#main [class*="card"]{border-color:#2a2a3d}',
+    '#tb-tabs .tb-tab.on{background:rgba(212,255,58,.14);color:#d4ff3a}'
+  ])
+  +'html[data-theme="palmwave"] body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:2147480000;opacity:.045;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27160%27 height=%27160%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%27.9%27 numOctaves=%272%27/%3E%3C/filter%3E%3Crect width=%27160%27 height=%27160%27 filter=%27url(%23n)%27/%3E%3C/svg%3E")}';
+  var FONTS='https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap';
+  function ensure(){
+    var el=document.getElementById('lo-truethemes-css');
+    if(el){ if(el.textContent!==CSS){ try{ el.textContent=CSS; }catch(e){} } }
+    else if(document.head||document.documentElement){ el=document.createElement('style'); el.id='lo-truethemes-css'; el.textContent=CSS; (document.head||document.documentElement).appendChild(el); }
+    if(!document.getElementById('lo-truethemes-fonts')&&document.head){ var l=document.createElement('link'); l.id='lo-truethemes-fonts'; l.rel='stylesheet'; l.href=FONTS; document.head.appendChild(l); }
+    /* keep data-theme in sync even if applyMine ran before this block */
+    try{ var xt=localStorage.getItem('lifeos.xtheme'); var de=document.documentElement; if(xt&&window.LifeOSThemes&&LifeOSThemes.ids.indexOf(xt)>-1){ if(de.getAttribute('data-theme')!==xt) de.setAttribute('data-theme',xt); } else if(!xt&&de.getAttribute&&de.getAttribute('data-theme')){ de.removeAttribute('data-theme'); } }catch(e){}
+  }
+  ensure(); setInterval(ensure,3000);
+  if(typeof window.addEventListener==='function') window.addEventListener('hashchange', function(){ setTimeout(ensure,80); });
+  window.LifeOSThemesX={ ensure:ensure, CSS:CSS };
+})();
+
 
 </script>
 
