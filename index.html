@@ -1427,7 +1427,7 @@
   }
   function fmtMoney(n){ if(n==null||isNaN(n)) return '—'; var a=Math.abs(n); if(a>=1e6) return '$'+(n/1e6).toFixed(2)+'M'; if(a>=1e3) return '$'+Math.round(n/1e3)+'k'; return '$'+Math.round(n); }
   function netWorth(s){ var m=s.money||{}; var assets=A(m.assets).reduce(function(t,a){return t+(+a.value||+a.amount||0);},0); var inv=A(s.investments).reduce(function(t,a){return t+(+a.value||0);},0); return assets+inv; }
-  function pracDone(s){ var d=0; A(s.practices).forEach(function(p){ if(p.doneToday||p.done||(p.log&&p.log.indexOf(new Date().toISOString().slice(0,10))>=0)) d++; }); return d; }
+  function pracDone(s){ var t=new Date().toISOString().slice(0,10); var d=0; A(s.practices).forEach(function(p){ var done=p.doneToday||p.done; if(!done && p.log){ if(Array.isArray(p.log)) done=p.log.indexOf(t)>=0; else if(typeof p.log==='string') done=p.log.indexOf(t)>=0; else if(typeof p.log==='object') done=!!(p.log[t]); } if(done) d++; }); return d; }
   function openTasks(s){ return A(s.tasks).filter(function(t){return t.status!=='done'&&!t.completedAt;}).length; }
 
   function tiles(view,s){
@@ -1574,6 +1574,50 @@
   }
   function go(){ if(!document.getElementById('app')) return false; css(); return false; }
   window.LifeOSConsole={ recss:function(){ var e=document.getElementById('lo-console-css'); if(e)e.remove(); css(); } };
+  var iv=setInterval(go,60); setTimeout(function(){ clearInterval(iv); },30000);
+  if(document.readyState!=='loading') go();
+})();
+
+/* ====================================================================
+   Block 29 — Comprehensive usability + interaction upgrade (CSS layer)
+   • Kills wasted horizontal space: .lr-rows fills the center width with
+     2 columns instead of collapsing to one ~520px column.
+   • Tasks stays a full-width, dense, Excel-style single-column table.
+   • Bolder unified rows + real interaction affordances (hover / focus /
+     cursor / sticky toolbars / tuned scrollbars).
+   ==================================================================== */
+(function(){
+  function css(){
+    if(document.getElementById('lo-usability-css')||!document.head||!document.getElementById('app')) return;
+    document.head.insertAdjacentHTML('beforeend','<style id="lo-usability-css">'
+      /* ---- fill wasted space: shared list grid becomes a responsive 2-up ---- */
+      +'.lr-rows{grid-template-columns:repeat(auto-fill,minmax(430px,1fr)) !important;gap:10px !important;align-items:start !important}'
+      +'.grid3{grid-template-columns:repeat(auto-fill,minmax(300px,1fr)) !important;gap:11px !important}'
+      /* ---- Tasks = dedicated full-width Excel-style single column ---- */
+      +'#view-tasks .lr-rows,#view-tasks .tlist,#view-tasks .grid3{grid-template-columns:1fr !important}'
+      +'#view-tasks .lr-row,#view-tasks .tlist>*{width:100% !important}'
+      /* ---- rows: bolder + clear interaction ---- */
+      +'.lr-row{cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}'
+      +'.lr-row:hover{transform:translateY(-1px);box-shadow:var(--e-2);border-color:color-mix(in srgb,var(--fg-1) 16%,transparent)}'
+      +'.lr-row:focus-visible{outline:2px solid #3b6ef6;outline-offset:2px}'
+      +'.lr-row b,.lr-row .lr-ttl,.lr-row .ttl{font-weight:700}'
+      /* ---- tight, sticky toolbars (segmented control) ---- */
+      +'.lr-seg{position:sticky;top:0;z-index:6;backdrop-filter:saturate(1.1)}'
+      /* ---- tighten vertical rhythm; reclaim dead space ---- */
+      +'#main .view>h1{margin-bottom:1px;font-weight:800;letter-spacing:-.01em}'
+      +'#main .view>p.sub{margin-top:1px;margin-bottom:8px}'
+      /* ---- refined scrollbars ---- */
+      +'#main::-webkit-scrollbar,#ai-studio *::-webkit-scrollbar{width:9px;height:9px}'
+      +'#main::-webkit-scrollbar-thumb,#ai-studio *::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--fg-1) 16%,transparent);border-radius:9px}'
+      +'#main::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--fg-1) 26%,transparent)}'
+      /* ---- bolder metric numerals everywhere ---- */
+      +'.cc-kpi .v,.kpi .v,#lo-metrics .lm-tile .v{font-weight:800}'
+      /* ---- interactive cards get a pointer + lift ---- */
+      +'.card.clickable,.bc-card,.lm-tile{transition:transform .12s ease,box-shadow .12s ease}'
+      +'</style>');
+  }
+  function go(){ if(!document.getElementById('app')) return false; css(); return false; }
+  window.LifeOSUsability={ recss:function(){ var e=document.getElementById('lo-usability-css'); if(e)e.remove(); css(); } };
   var iv=setInterval(go,60); setTimeout(function(){ clearInterval(iv); },30000);
   if(document.readyState!=='loading') go();
 })();
