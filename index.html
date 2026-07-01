@@ -1649,14 +1649,15 @@
   function S(){ return window.LifeOS.get(); }
   function save(mut){ var s=window.LifeOS.get(); mut(s); window.LifeOS.set(s); }
   function two(n){ return (n<10?'0':'')+n; }
+  function todayDate(){ try{ return (window.__lifeosToday)? new Date(window.__lifeosToday): new Date(); }catch(e){ return new Date(); } }
   function dstr(d){ return d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate()); }
-  function parseMin(hhmm){ var p=(''+hhmm).split(':'); return (+p[0])*60+(+(p[1]||0)); }
+  function parseMin(hhmm){ var p=(''+hhmm).split(':'); var h=+p[0], m=+(p[1]||0); if(isNaN(h)) return 0; return h*60+(isNaN(m)?0:m); }
   function fmtTime(min){ var h=Math.floor(min/60), m=min%60, ap=h<12?'AM':'PM', hh=((h+11)%12)+1; return hh+':'+two(m)+' '+ap; }
   function weekday(d){ return (d.getDay()===0)?7:d.getDay(); } /* Mon=1..Sun=7 */
   function addDays(d,n){ var x=new Date(d); x.setDate(x.getDate()+n); return x; }
   function sameDay(iso,d){ return iso && iso.slice(0,10)===dstr(d); }
 
-  var P={ date:new Date(2026,5,30), mode:'day', exp:{} };
+  var P={ date:todayDate(), mode:'day', exp:{} };
   try{ var sv=JSON.parse(localStorage.getItem('lifeos.plan')||'{}'); if(sv.date) P.date=new Date(sv.date); if(sv.mode) P.mode=sv.mode; }catch(e){}
   function persistUI(){ try{ localStorage.setItem('lifeos.plan', JSON.stringify({date:P.date.toISOString(), mode:P.mode})); }catch(e){} }
 
@@ -1803,7 +1804,7 @@
     var head=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(function(w){return '<div class="pl-empty" style="text-align:center">'+w+'</div>';}).join('');
     var gridStart=addDays(first,-startPad);
     for(var i=0;i<42;i++){ var cd=addDays(gridStart,i); var off=cd.getMonth()!==d.getMonth(); var n=timedTasks(cd).length;
-      cells+='<div class="pl-mcell'+(off?' off':'')+(dstr(cd)===dstr(new Date(2026,5,30))?' today':'')+'" data-date="'+dstr(cd)+'"><div class="dn">'+cd.getDate()+'</div>'+Array(Math.min(n,5)).fill('<span class="pl-mdot"></span>').join('')+'</div>'; }
+      cells+='<div class="pl-mcell'+(off?' off':'')+(dstr(cd)===dstr(todayDate())?' today':'')+'" data-date="'+dstr(cd)+'"><div class="dn">'+cd.getDate()+'</div>'+Array(Math.min(n,5)).fill('<span class="pl-mdot"></span>').join('')+'</div>'; }
     return '<div class="pl-month">'+head+cells+'</div>';
   }
   function render(){
@@ -1818,7 +1819,7 @@
     wire(v);
   }
   function wire(v){
-    v.querySelectorAll('[data-go]').forEach(function(b){ b.onclick=function(){ var g=b.getAttribute('data-go'); if(g==='today') P.date=new Date(2026,5,30); else P.date=addDays(P.date, P.mode==='month'?(+g*30):(P.mode==='week'?(+g*7):+g)); persistUI(); render(); }; });
+    v.querySelectorAll('[data-go]').forEach(function(b){ b.onclick=function(){ var g=b.getAttribute('data-go'); if(g==='today') P.date=todayDate(); else P.date=addDays(P.date, P.mode==='month'?(+g*30):(P.mode==='week'?(+g*7):+g)); persistUI(); render(); }; });
     v.querySelectorAll('[data-mode]').forEach(function(b){ b.onclick=function(){ P.mode=b.getAttribute('data-mode'); persistUI(); render(); }; });
     v.querySelectorAll('[data-date]').forEach(function(el){ el.onclick=function(){ P.date=new Date(el.getAttribute('data-date')+'T12:00'); P.mode='day'; persistUI(); render(); }; });
     var inp=v.querySelector('#pl-inbox-in'), addb=v.querySelector('[data-add-inbox]');
@@ -1840,7 +1841,7 @@
         var rect=grid.getBoundingClientRect(); var y=e.clientY-rect.top; var min=DAY_START + Math.round((y/PXMIN)/15)*15; if(min<DAY_START)min=DAY_START; if(min>DAY_END-15)min=DAY_END-15; scheduleTask(id, P.date, min); });
     }
   }
-  window.LifeOSPlan={ enable:function(){try{localStorage.setItem("lifeos.plan.on","1");}catch(e){} injectNav(); this.show(); }, show:function(){ var v=ensureSection(); if(!v) return; document.querySelectorAll('#main .view').forEach(function(s){ if(s!==v) s.classList.remove('on'); }); v.classList.add('on'); document.querySelectorAll('#rail .navbtn').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-view')==='plan'); }); render(); }, render:render, P:P };
+  window.LifeOSPlan={ enable:function(){try{localStorage.setItem("lifeos.plan.on","1");}catch(e){} injectNav(); this.show(); }, show:function(){ var v=ensureSection(); if(!v) return; document.querySelectorAll('#main .view').forEach(function(s){ if(s!==v) s.classList.remove('on'); }); v.classList.add('on'); document.querySelectorAll('#rail .navbtn').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-view')==='plan'); }); render(); }, render:render, P:P, _t:{ parseMin:parseMin, weekday:weekday, todayDate:todayDate, fmtTime:fmtTime, dstr:dstr, startMin:startMin } };
 
   function injectNav(){
     if(localStorage.getItem("lifeos.plan.on")!=="1") return true;
