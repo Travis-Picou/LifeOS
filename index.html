@@ -2325,7 +2325,7 @@
    Persistent (the tab bar re-renders), so it sticks across navigation.
    ==================================================================== */
 (function(){
-  var HIDE=["Retirement","Debt","Payoff plan","Payoff Plan","Tax","Indicators","Forecast","Tasks"];
+  var HIDE=["Retirement","Debt","Payoff plan","Payoff Plan","Tax","Indicators","Forecast","Tasks","Accounts"];
   function activeMoney(){ if((location.hash||'').indexOf('money')>-1) return true; var n=document.querySelector('.navbtn[data-view="money"]'); return !!(n&&n.classList.contains('on')); }
   function clean(){
     if(!activeMoney()) return;
@@ -2422,28 +2422,86 @@
 /* deploy-nonce 20260701T143307Z */
 
 /* ====================================================================
-   Block 43 — Tight list spacing. Lists across the app use inconsistent
-   gaps (e.g. .agv-row = 8px margin, container row-gaps, etc.). Normalize
-   every vertical list ROW/ITEM to a tight 2px rhythm; leave grid CARD
-   layouts (KPI tiles, theme picker, health cards) untouched.
+   Block 44 — Uniform list spacing (generic normalizer). Supersedes the
+   old class-based tightener. Every single-column vertical list in #main
+   gets the SAME gap, whether the list spaces rows via margins, grid
+   row-gap, or nothing. Multi-column grids (KPI tiles, card views) are
+   skipped by the full-width / single-column guard, so metric cards and
+   the Cards view are untouched.
    ==================================================================== */
 (function(){
-  function ensure(){
-    if(document.getElementById("lo-tightlist-css")) return;
-    var css=document.createElement("style"); css.id="lo-tightlist-css";
-    css.textContent=
-      "#main .agv-row,#main .acc-row,#main .lr-row,#main .task-row,#main .hz-row,"+
-      "#main .rt-row,#main .ts-row,#main .tf-row,#main .as-row,#main .hc-row,"+
-      "#main .anchor-row,#main .rev-entry,#main .proj-line,#main .gc-item,"+
-      "#main .cms-li,#main .bnd-item,#main .gantt-row,#main .lz-card,#main .acc-extra{"+
-      "margin-top:0 !important;margin-bottom:2px !important}"+
-      "#main .lr-rows,#main .hc-rows,#main .k-rows,#main .dx-rows,#main .acc-rows,"+
-      "#main .agv-list,#main .bnd-list{row-gap:2px !important}";
+  var GAP=4;
+  function apply(){
+    var main=document.getElementById("main"); if(!main) return;
+    var els=main.querySelectorAll("*");
+    for(var i=0;i<els.length;i++){
+      var c=els[i], kids=c.children; if(!kids||kids.length<3) continue;
+      var cls=kids[0].className; if(typeof cls!=="string"||!cls) continue;
+      var same=[]; for(var j=0;j<kids.length;j++){ if(kids[j].className===cls) same.push(kids[j]); }
+      if(same.length<3) continue;
+      var a=same[0].getBoundingClientRect(), b=same[1].getBoundingClientRect();
+      if(a.height<28||a.width<120) continue;
+      if(!(b.top>=a.top+a.height-3)) continue;              // stacked vertically
+      if(!(a.width>=c.clientWidth*0.75)) continue;           // single column only
+      var disp=getComputedStyle(c).display;
+      if(disp==="grid"||disp==="flex"){
+        c.style.setProperty("row-gap",GAP+"px","important");
+        for(var k=0;k<same.length;k++){ same[k].style.setProperty("margin-top","0px","important"); same[k].style.setProperty("margin-bottom","0px","important"); }
+      } else {
+        for(var m=0;m<same.length;m++){ same[m].style.setProperty("margin-top","0px","important"); same[m].style.setProperty("margin-bottom",(m===same.length-1?"0px":GAP+"px"),"important"); }
+      }
+    }
+  }
+  window.LifeOSTightList={ ensure:apply, apply:apply, GAP:GAP };
+  if(document.readyState!=="loading") apply();
+  setInterval(apply,600);
+  if(typeof window.addEventListener==="function") window.addEventListener("hashchange",function(){ setTimeout(apply,60); setTimeout(apply,320); });
+})();
+
+
+/* ====================================================================
+   Block 45 — Wave 1 visual fixes: widen health metric cards, stop cards
+   shifting on hover (keep expanded cards put), hide the leftover "★"
+   note atop Identity.
+   ==================================================================== */
+(function(){
+  if(!document.getElementById("lo-wave1-css")){
+    var css=document.createElement("style"); css.id="lo-wave1-css";
+    css.textContent=[
+      "#main .hc-grid{ grid-template-columns:repeat(auto-fit,minmax(160px,1fr)) !important; }",
+      "#main [class*=\"card\"]:hover, #main [class*=\"-row\"]:hover, #main [class*=\"-item\"]:hover, #main [class*=\"tile\"]:hover, #main .idc:hover, #main .hc:hover{ transform:none !important; }"
+    ].join("\n");
     (document.head||document.documentElement).appendChild(css);
   }
-  ensure();
-  setInterval(ensure,1000);
-  window.LifeOSTightList={ ensure:ensure };
+  function killStar(){
+    var ns=document.querySelectorAll(".surf-note");
+    for(var i=0;i<ns.length;i++){ var t=(ns[i].textContent||"").trim(); if(t===""||t==="\u2605"||t==="\u2606"||t==="\u2b50") ns[i].style.display="none"; }
+  }
+  killStar(); setInterval(killStar,800);
+  window.LifeOSWave1={ killStar:killStar };
+})();
+
+
+/* ====================================================================
+   Block 46 — Seed Travis's real 27 values (V-01…V-27, Desert Night
+   workbook) into Identity, replacing the placeholder set. One-time.
+   ==================================================================== */
+(function(){
+  var V27=[{word:"Integrity first",note:"Tell the truth \u2014 to myself and others. Do the right thing when no one is watching."},{word:"Service before self",note:"Put the team, the family, the mission ahead of personal comfort."},{word:"Excellence in all we do",note:"Whatever I touch, I do it well \u2014 not perfectly, well."},{word:"People can change. I can change.",note:"Growth is real and possible."},{word:"Failure is the path to success, not the opposite.",note:"Treat failure as data and momentum, not as defeat."},{word:"Equality",note:"Same dignity, same access, same respect \u2014 for everyone."},{word:"Servant leadership",note:"Lead by serving \u2014 my team, my family, my community."},{word:"Eternal optimism",note:"Default belief: things can get better; we can make them better."},{word:"Growth Mindset / Learning (#4 priority value)",note:"Treat ability as developable; lean into hard things. Travis ranks Growth Mindset /\u2026"},{word:"Exceptionally curious (and contained where it matters)",note:"Travis is exceptionally curious \u2014 endlessly open. Curiosity is a defining trait AND a\u2026"},{word:"Independent + progressive thinking",note:"Think for myself; question received wisdom; default to inclusion."},{word:"Be a positive impact on people's lives",note:"Leave people better than I found them."},{word:"Environments where people are at their best",note:"Optimize the room, the tool, the meeting, the home."},{word:"Emotionally intelligent (with daily practice connecting to emotions)",note:"I am emotionally intelligent \u2014 I read the room, including my own \u2014 AND I have to\u2026"},{word:"Meditation is a tool for finding peace and acceptance",note:"Use meditation to find peace and acceptance \u2014 not just productivity."},{word:"Foundation-first",note:"Build a base I can improve piece by piece, until it's right."},{word:"Autonomy bounded by values + awareness",note:"Maximum AI autonomy \u2014 never outside my values or my visibility."},{word:"No-shame design",note:"No streaks lost; no guilt nudges; no comparison."},{word:"Design-obsessed (form + function must marry)",note:"I am obsessive about the way things are designed \u2014 visual + functional + emotional.\u2026"},{word:"Humor",note:"Travis values humor \u2014 keep it human, keep it light where it can be."},{word:"See the good in people (sometimes to a fault)",note:"Default to assuming the best of others \u2014 even when it costs me."},{word:"I'm a mirror",note:"Travis reflects what he sees \u2014 energy, tone, intent. Both a gift (deep empathy, easy\u2026"},{word:"Persistently trying to understand what people need and how I can serve them",note:"Active listening + service orientation \u2014 go beyond what's stated to what's actually\u2026"},{word:"Adaptability + recoverability from setbacks",note:"Travis: one of my greatest strengths. I adapt to change and come back from setbacks.\u2026"},{word:"Exceed stakeholder expectations",note:"Travis: 'I want to generally exceed the expectations of the stakeholders in my life.'\u2026"},{word:"Under Promise, Over Deliver",note:"Set the bar at what you can do with margin; clear it by a mile."},{word:"Don't talk about what I'm going to do \u2014 demonstrate it",note:"Show, don't tell. The work speaks; the talk is afterward."}];
+  function seed(){
+    try{
+      if(!window.LifeOS||!LifeOS.get) return false;
+      var st=LifeOS.get(); if(!st||!st.identity) return false;
+      if(st.identity.__v27) return true;
+      st.identity.values = V27.map(function(v,i){ return { id:"V27-"+(i+1), word:v.word, note:v.note, linked:"" }; });
+      st.identity.__v27=true;
+      LifeOS.set(st);
+      try{ if(window.IdentityEngine){ if(IdentityEngine.d) IdentityEngine.d=st.identity; if(IdentityEngine.render) IdentityEngine.render(); } }catch(e){}
+      return true;
+    }catch(e){ return false; }
+  }
+  var done=seed(); var n=0, iv=setInterval(function(){ if(seed()||++n>25) clearInterval(iv); },500);
+  window.LifeOSValues27={ seed:seed, list:V27 };
 })();
 
 </script>
