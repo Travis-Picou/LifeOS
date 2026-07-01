@@ -1982,6 +1982,27 @@
   if(document.readyState!=='loading') patch();
 })();
 
+/* ====================================================================
+   Block 34 — Command-center KPI band (#home-band .cc-kpi) adopts the
+   active theme's design language: themed radius, themed elevation
+   (glow/soft per theme), display font on the value, hover lift.
+   ==================================================================== */
+(function(){
+  function css(){
+    if(document.getElementById('lo-ccstyle-css')||!document.head||!document.getElementById('app'))return;
+    document.head.insertAdjacentHTML('beforeend','<style id="lo-ccstyle-css">'
+      +'#home-band .cc-kpi{border-radius:var(--r-md,14px) !important;box-shadow:var(--e-2) !important;background:var(--bg-2) !important;border:1px solid var(--line-1) !important;border-top:3px solid var(--kc,var(--accent)) !important;transition:box-shadow .15s var(--ease,ease),transform .15s var(--ease,ease)}'
+      +'#home-band .cc-kpi .v{font-family:var(--display);font-weight:800;letter-spacing:-.015em}'
+      +'#home-band .cc-kpi .l{font-family:var(--mono)}'
+      +'#home-band .cc-kpi:hover{box-shadow:var(--e-3,var(--e-2))}'
+      +'</style>');
+  }
+  function go(){ if(!document.getElementById('app'))return false; css(); return false; }
+  window.LifeOSCC={ recss:function(){ var e=document.getElementById('lo-ccstyle-css'); if(e)e.remove(); css(); } };
+  var iv=setInterval(go,80); setTimeout(function(){ clearInterval(iv); },30000);
+  if(document.readyState!=='loading') go();
+})();
+
 </script>
 
   <div id="__bundler_thumbnail">
