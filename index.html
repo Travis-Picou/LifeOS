@@ -1894,6 +1894,33 @@
   if(document.readyState!=='loading') go();
 })();
 
+/* ====================================================================
+   Block 32 — People: collapse the duplicate add button.
+   The base app renders BOTH "+ Person" and "+ Contact", each calling
+   PeopleEngine.add() — they are identical. Keep one, remove the rest.
+   ==================================================================== */
+(function(){
+  function dedupe(root){
+    root=root||document;
+    var btns=[].slice.call(root.querySelectorAll('button[onclick*="PeopleEngine.add"]'));
+    for(var i=1;i<btns.length;i++){ try{ btns[i].remove(); }catch(e){} }
+    if(btns[0]) btns[0].textContent='+ Person';
+    return btns.length;
+  }
+  window.LifeOSPeopleFix={ dedupe:dedupe };
+  function patch(){
+    if(!window.__peopleDedup && window.PeopleEngine && typeof PeopleEngine.render==='function'){
+      window.__peopleDedup=true;
+      var base=PeopleEngine.render.bind(PeopleEngine);
+      PeopleEngine.render=function(){ var r=base.apply(this,arguments); try{ dedupe(document); }catch(e){} return r; };
+    }
+    try{ dedupe(document); }catch(e){}
+    return false;
+  }
+  var iv=setInterval(patch,120); setTimeout(function(){ clearInterval(iv); },30000);
+  if(document.readyState!=='loading') patch();
+})();
+
 </script>
 
   <div id="__bundler_thumbnail">
