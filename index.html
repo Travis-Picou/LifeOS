@@ -2056,6 +2056,7 @@
     SELS.forEach(function(sel){
       var nodes=document.querySelectorAll(sel);
       for(var i=0;i<nodes.length;i++){ (function(k){
+        try{
         if(k.__modk) return; 
         var valEl=findVal(k); if(!valEl){ return; } k.__modk=true; var nativeSvg=!!k.querySelector('svg');
         var labEl=findLabel(k,valEl);
@@ -2071,11 +2072,14 @@
           if(!nativeSvg && !k.querySelector('.lm-tr') && !k.querySelector('.cck-pill')) k.insertAdjacentHTML('beforeend', pill(dir,(d>0?'+':'')+(Math.round(d*100)/100)));
           if(!nativeSvg){ k.insertAdjacentHTML('beforeend', spark(series, kc)); var sk=k.querySelector('.cck-spark'); if(sk) sk.style.height=Math.max(14,Math.round(H*0.2))+'px'; if(parseFloat(cs.paddingBottom)<16) k.style.paddingBottom='18px'; }
         }
+        }catch(e){}
       })(nodes[i]); }
     });
   }
-  var iv=setInterval(function(){ css(); enhance(); },400); setTimeout(function(){ clearInterval(iv); },30000);
-  if(document.readyState!=='loading'){ css(); enhance(); }
+  function tick(){ try{ css(); enhance(); }catch(e){} }
+  setInterval(tick, 700);
+  if(typeof window.addEventListener==='function') window.addEventListener('hashchange', function(){ setTimeout(tick, 150); });
+  if(document.readyState!=='loading') tick();
 })();
 
 </script>
