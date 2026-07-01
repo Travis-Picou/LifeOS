@@ -2362,10 +2362,10 @@
    • drop the › separator + status dot
    • size the section name up to the wordmark's scale, bold, gradient fill
    • per-theme gradient (Palmwave = the exact OPS BOARD lime→pink)
-   • rename the Tasks section to "Ops Board"; same treatment in every section
+   • uses each section's own name (Tasks stays "Tasks"); same treatment everywhere
    ==================================================================== */
 (function(){
-  var NAME_OVERRIDE={ tasks:"Ops Board" };            // section id -> display title
+  var NAME_OVERRIDE={};                                // section id -> display title (app names used as-is)
   var CUSTOM={ accounts:"Accounts", boundaries:"Boundaries" };
 
   function ensureCSS(){
@@ -2418,6 +2418,33 @@
 })();
 
 /* deploy-nonce 20260701T142838Z */
+
+/* deploy-nonce 20260701T143307Z */
+
+/* ====================================================================
+   Block 43 — Tight list spacing. Lists across the app use inconsistent
+   gaps (e.g. .agv-row = 8px margin, container row-gaps, etc.). Normalize
+   every vertical list ROW/ITEM to a tight 2px rhythm; leave grid CARD
+   layouts (KPI tiles, theme picker, health cards) untouched.
+   ==================================================================== */
+(function(){
+  function ensure(){
+    if(document.getElementById("lo-tightlist-css")) return;
+    var css=document.createElement("style"); css.id="lo-tightlist-css";
+    css.textContent=
+      "#main .agv-row,#main .acc-row,#main .lr-row,#main .task-row,#main .hz-row,"+
+      "#main .rt-row,#main .ts-row,#main .tf-row,#main .as-row,#main .hc-row,"+
+      "#main .anchor-row,#main .rev-entry,#main .proj-line,#main .gc-item,"+
+      "#main .cms-li,#main .bnd-item,#main .gantt-row,#main .lz-card,#main .acc-extra{"+
+      "margin-top:0 !important;margin-bottom:2px !important}"+
+      "#main .lr-rows,#main .hc-rows,#main .k-rows,#main .dx-rows,#main .acc-rows,"+
+      "#main .agv-list,#main .bnd-list{row-gap:2px !important}";
+    (document.head||document.documentElement).appendChild(css);
+  }
+  ensure();
+  setInterval(ensure,1000);
+  window.LifeOSTightList={ ensure:ensure };
+})();
 
 </script>
 
