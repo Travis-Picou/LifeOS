@@ -1409,9 +1409,6 @@
     var ex=document.querySelector('.navbtn[data-view="opportunities"]'); if(ex) ex.remove();
     return true;
   }
-  function allAccounts(){ var out=[]; groups().forEach(function(cat){ cat.items.forEach(function(it){ out.push({name:it.name, cat:cat.cat, del:it.del}); }); }); return out; }
-  function creds(){ var s=S(); return s.accountsCreds||{}; }
-  function setCred(name,field,val){ var s=S(); s.accountsCreds=s.accountsCreds||{}; s.accountsCreds[name]=s.accountsCreds[name]||{user:"",pass:""}; s.accountsCreds[name][field]=val; try{ window.LifeOS.set(s); }catch(e){} }
   function css(){ if(document.getElementById("opps-css")||!document.head) return; document.head.insertAdjacentHTML("beforeend",'<style id="opps-css">'
     +'.opp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}@media(max-width:780px){.opp-grid{grid-template-columns:1fr}}'
     +'.bc-card{border:1px solid var(--line-1);border-left:3px solid var(--c);border-radius:14px;background:var(--bg-2);box-shadow:var(--e-1);padding:15px 16px;cursor:pointer;transition:transform .14s,box-shadow .14s}.bc-card:hover{transform:translateY(-2px);box-shadow:var(--e-2)}'
@@ -2211,6 +2208,9 @@
       {cat:'Other / Digital', c:'#0e8aa6', items:otherG, addable:true}
     ];
   }
+  function allAccounts(){ var out=[]; groups().forEach(function(cat){ cat.items.forEach(function(it){ out.push({name:it.name, cat:cat.cat, del:it.del}); }); }); return out; }
+  function creds(){ var s=S(); return s.accountsCreds||{}; }
+  function setCred(name,field,val){ var s=S(); s.accountsCreds=s.accountsCreds||{}; s.accountsCreds[name]=s.accountsCreds[name]||{user:"",pass:""}; s.accountsCreds[name][field]=val; try{ window.LifeOS.set(s); }catch(e){} }
   function css(){
     if(document.getElementById('lo-acc-css')||!document.head||!document.getElementById('app'))return;
     document.head.insertAdjacentHTML('beforeend','<style id="lo-acc-css">'
