@@ -2003,6 +2003,66 @@
   if(document.readyState!=='loading') go();
 })();
 
+/* ====================================================================
+   Block 35 — Modern command-center KPI cards (InsuletOS style):
+   label + trend pill (top-right) + big value + ghost-number watermark
+   + sparkline. Trend/sparkline are driven by REAL series only
+   (readiness 7-day now; a daily KPI-snapshot log fills the rest over
+   time — no fabricated trend lines).
+   ==================================================================== */
+(function(){
+  function num(t){ var m=(''+t).replace(/[^0-9.\-]/g,''); var n=parseFloat(m); return isNaN(n)?null:n; }
+  function spark(vals,color){
+    if(!vals||vals.length<2) return '';
+    var w=140,h=24,mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),rg=(mx-mn)||1;
+    var pts=vals.map(function(v,i){return (i/(vals.length-1)*w).toFixed(1)+','+(h-((v-mn)/rg)*(h-3)-1.5).toFixed(1);}).join(' ');
+    return '<svg class="cck-spark" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none"><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  function pill(dir,delta){ var g=dir==='up'?'▲':dir==='down'?'▼':'→'; return '<span class="cck-pill cck-'+dir+'">'+g+' '+delta+'</span>'; }
+  window.LifeOSModKPI={ spark:spark, pill:pill, num:num };
+  function hist(label,val){ try{ var H=JSON.parse(localStorage.getItem('lifeos.kpihist')||'{}'); var d=new Date().toISOString().slice(0,10); H[label]=H[label]||[]; var last=H[label][H[label].length-1]; if(!last||last.d!==d){ H[label].push({d:d,v:val}); if(H[label].length>30)H[label]=H[label].slice(-30); localStorage.setItem('lifeos.kpihist',JSON.stringify(H)); } else if(last){ last.v=val; localStorage.setItem('lifeos.kpihist',JSON.stringify(H)); } return H[label].map(function(x){return x.v;}); }catch(e){ return []; } }
+  function css(){
+    if(document.getElementById('lo-modkpi-css')||!document.head||!document.getElementById('app'))return;
+    document.head.insertAdjacentHTML('beforeend','<style id="lo-modkpi-css">'
+      +'#home-band .cc-kpi{position:relative;overflow:hidden;min-height:96px;padding-bottom:22px !important}'
+      +'#home-band .cc-kpi .v,#home-band .cc-kpi .l,#home-band .cc-kpi .d{position:relative;z-index:2}'
+      +'#home-band .cc-kpi .v{font-size:30px}'
+      +'#home-band .cck-ghost{position:absolute;right:-4px;bottom:-22px;z-index:0;font-family:var(--display);font-weight:800;font-size:86px;line-height:1;letter-spacing:-.04em;color:var(--fg-1);opacity:.06;pointer-events:none;white-space:nowrap}'
+      +'#home-band .cck-pill{position:absolute;top:12px;right:12px;z-index:3;font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:.02em;padding:3px 8px;border-radius:999px;line-height:1}'
+      +'#home-band .cck-up{color:var(--good);background:color-mix(in srgb,var(--good) 18%,transparent)}'
+      +'#home-band .cck-down{color:var(--bad);background:color-mix(in srgb,var(--bad) 18%,transparent)}'
+      +'#home-band .cck-flat{color:var(--fg-3);background:color-mix(in srgb,var(--fg-3) 14%,transparent)}'
+      +'#home-band .cck-spark{position:absolute;left:0;right:0;bottom:0;width:100%;height:22px;z-index:1}'
+      +'</style>');
+  }
+  function enhance(){
+    var band=document.getElementById('home-band'); if(!band) return;
+    var s=(window.LifeOS&&LifeOS.get())||{};
+    band.querySelectorAll('.cc-kpi').forEach(function(k){
+      if(k.__modk) return; k.__modk=true;
+      var vEl=k.querySelector('.v'), lEl=k.querySelector('.l');
+      var label=lEl?lEl.textContent.trim():'';
+      var kc=(k.style.getPropertyValue('--kc')||'').trim()||'var(--accent)';
+      // ghost watermark (from the real value)
+      if(vEl){ var g=document.createElement('div'); g.className='cck-ghost'; g.textContent=(''+vEl.textContent).replace(/[$%]/g,'').trim(); g.setAttribute('aria-hidden','true'); k.appendChild(g); }
+      // real series: readiness has a true 7-day array; everything else accrues via daily snapshot log
+      var series=null;
+      if(/readiness/i.test(label) && Array.isArray(s.readiness) && s.readiness.length>1){ series=s.readiness.slice(); }
+      var n=vEl?num(vEl.textContent):null;
+      if(n!==null){ var h=hist(label,n); if(!series && h.length>1) series=h; }
+      if(series && series.length>1){
+        var d=series[series.length-1]-series[series.length-2], dir=d>0?'up':d<0?'down':'flat';
+        var dtxt=(d>0?'+':'')+(Math.round(d*100)/100);
+        if(lEl) k.insertAdjacentHTML('beforeend', pill(dir,dtxt));
+        k.insertAdjacentHTML('beforeend', spark(series, kc));
+      }
+    });
+  }
+  function go(){ if(!document.getElementById('app'))return false; css(); enhance(); return false; }
+  var iv=setInterval(function(){ css(); enhance(); },400); setTimeout(function(){ clearInterval(iv); },30000);
+  if(document.readyState!=='loading') go();
+})();
+
 </script>
 
   <div id="__bundler_thumbnail">
