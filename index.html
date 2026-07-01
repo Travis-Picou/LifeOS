@@ -2453,9 +2453,10 @@
     }
   }
   window.LifeOSTightList={ ensure:apply, apply:apply, GAP:GAP };
-  if(document.readyState!=="loading") apply();
-  setInterval(apply,600);
-  if(typeof window.addEventListener==="function") window.addEventListener("hashchange",function(){ setTimeout(apply,60); setTimeout(apply,320); });
+  function _sched44(){ setTimeout(apply,60); setTimeout(apply,350); setTimeout(apply,1000); }
+  if(document.readyState!=="loading") _sched44();
+  setInterval(apply,3000);
+  if(typeof window.addEventListener==="function") window.addEventListener("hashchange",_sched44);
 })();
 
 
@@ -2477,7 +2478,8 @@
     var ns=document.querySelectorAll(".surf-note");
     for(var i=0;i<ns.length;i++){ var t=(ns[i].textContent||"").trim(); if(t===""||t==="\u2605"||t==="\u2606"||t==="\u2b50") ns[i].style.display="none"; }
   }
-  killStar(); setInterval(killStar,800);
+  killStar(); setInterval(killStar,3000);
+  if(typeof window.addEventListener==="function") window.addEventListener("hashchange",function(){ setTimeout(killStar,80); setTimeout(killStar,450); });
   window.LifeOSWave1={ killStar:killStar };
 })();
 
@@ -2487,14 +2489,15 @@
    workbook) into Identity, replacing the placeholder set. One-time.
    ==================================================================== */
 (function(){
+  var __seeded46=false;
   var V27=[{word:"Integrity first",note:"Tell the truth \u2014 to myself and others. Do the right thing when no one is watching."},{word:"Service before self",note:"Put the team, the family, the mission ahead of personal comfort."},{word:"Excellence in all we do",note:"Whatever I touch, I do it well \u2014 not perfectly, well."},{word:"People can change. I can change.",note:"Growth is real and possible."},{word:"Failure is the path to success, not the opposite.",note:"Treat failure as data and momentum, not as defeat."},{word:"Equality",note:"Same dignity, same access, same respect \u2014 for everyone."},{word:"Servant leadership",note:"Lead by serving \u2014 my team, my family, my community."},{word:"Eternal optimism",note:"Default belief: things can get better; we can make them better."},{word:"Growth Mindset / Learning (#4 priority value)",note:"Treat ability as developable; lean into hard things. Travis ranks Growth Mindset /\u2026"},{word:"Exceptionally curious (and contained where it matters)",note:"Travis is exceptionally curious \u2014 endlessly open. Curiosity is a defining trait AND a\u2026"},{word:"Independent + progressive thinking",note:"Think for myself; question received wisdom; default to inclusion."},{word:"Be a positive impact on people's lives",note:"Leave people better than I found them."},{word:"Environments where people are at their best",note:"Optimize the room, the tool, the meeting, the home."},{word:"Emotionally intelligent (with daily practice connecting to emotions)",note:"I am emotionally intelligent \u2014 I read the room, including my own \u2014 AND I have to\u2026"},{word:"Meditation is a tool for finding peace and acceptance",note:"Use meditation to find peace and acceptance \u2014 not just productivity."},{word:"Foundation-first",note:"Build a base I can improve piece by piece, until it's right."},{word:"Autonomy bounded by values + awareness",note:"Maximum AI autonomy \u2014 never outside my values or my visibility."},{word:"No-shame design",note:"No streaks lost; no guilt nudges; no comparison."},{word:"Design-obsessed (form + function must marry)",note:"I am obsessive about the way things are designed \u2014 visual + functional + emotional.\u2026"},{word:"Humor",note:"Travis values humor \u2014 keep it human, keep it light where it can be."},{word:"See the good in people (sometimes to a fault)",note:"Default to assuming the best of others \u2014 even when it costs me."},{word:"I'm a mirror",note:"Travis reflects what he sees \u2014 energy, tone, intent. Both a gift (deep empathy, easy\u2026"},{word:"Persistently trying to understand what people need and how I can serve them",note:"Active listening + service orientation \u2014 go beyond what's stated to what's actually\u2026"},{word:"Adaptability + recoverability from setbacks",note:"Travis: one of my greatest strengths. I adapt to change and come back from setbacks.\u2026"},{word:"Exceed stakeholder expectations",note:"Travis: 'I want to generally exceed the expectations of the stakeholders in my life.'\u2026"},{word:"Under Promise, Over Deliver",note:"Set the bar at what you can do with margin; clear it by a mile."},{word:"Don't talk about what I'm going to do \u2014 demonstrate it",note:"Show, don't tell. The work speaks; the talk is afterward."}];
   function seed(){
     try{
       if(!window.LifeOS||!LifeOS.get) return false;
       var st=LifeOS.get(); if(!st||!st.identity) return false;
-      if(st.identity.__v27) return true;
+      if(__seeded46||st.identity.__v27){ __seeded46=true; return true; }
       st.identity.values = V27.map(function(v,i){ return { id:"V27-"+(i+1), word:v.word, note:v.note, linked:"" }; });
-      st.identity.__v27=true;
+      st.identity.__v27=true; __seeded46=true;
       LifeOS.set(st);
       try{ if(window.IdentityEngine){ if(IdentityEngine.d) IdentityEngine.d=st.identity; if(IdentityEngine.render) IdentityEngine.render(); } }catch(e){}
       return true;
