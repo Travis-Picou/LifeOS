@@ -3005,6 +3005,30 @@
     '#tb-tabs .tb-tab.on{background:rgba(212,255,58,.14);color:#d4ff3a}'
   ])
   +'html[data-theme="palmwave"] body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:2147480000;opacity:.045;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27160%27 height=%27160%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%27.9%27 numOctaves=%272%27/%3E%3C/filter%3E%3Crect width=%27160%27 height=%27160%27 filter=%27url(%23n)%27/%3E%3C/svg%3E")}';
+  /* ---- DEPTH PASS: rails, surfaces, numerals, tab shapes, inputs ---- */
+  CSS+=''
+  +T('tahoe',[ 'aside#rail,#rail{background:linear-gradient(180deg,#0a3a5c,#0c2e49) !important}', '#main .card,#main .lr-wrap,#main .estat,#main .cf-kpi{border-color:#d7e4ef}', '#tb-tabs .tb-tab.on{background:transparent;border-radius:0;box-shadow:inset 0 -2px 0 #02a085}', '#main .estat .ev,#main .cf-kpi .v{font-family:"Fraunces",Georgia,serif}' ])
+  +T('desertnight',[ 'aside#rail,#rail{background:linear-gradient(180deg,#011635,#00102b) !important;box-shadow:inset -1px 0 0 rgba(192,138,82,.25)}', '#main .card,#main .lr-wrap,#main .estat,#main .cf-kpi,#main .lr-row{border-color:#123c68}', '#main .estat .ev,#main .cf-kpi .v{font-family:"Cormorant Garamond",Georgia,serif;font-weight:700}', '#main input,#main select,#main textarea{background:#021b3e;border-color:#123c68;color:#e8edf7}', '#tb-tabs .tb-tab.on{background:rgba(192,138,82,.16);color:#e7d9a8;border-radius:6px}' ])
+  +T('sunny',[ 'aside#rail,#rail{background:linear-gradient(180deg,#0e7490,#0b5e75) !important}', '#main .card,#main .lr-wrap,#main .estat,#main .cf-kpi{border-radius:16px;border-color:#f0e3c0}', '#main .estat .ev,#main .cf-kpi .v{font-family:"Instrument Serif",Georgia,serif;font-style:italic;font-weight:500}', '#main .btn,#main .bm-own button.on,#main .cf-own button.on{border-radius:999px}' ])
+  +T('bloom',[ 'aside#rail,#rail{background:linear-gradient(180deg,#3f2e27,#33241f) !important;box-shadow:inset -2px 0 0 #ef1a6b}', '#main .card,#main .lr-wrap,#main .estat,#main .cf-kpi{border-radius:21px;border-color:#f4d4c8;box-shadow:0 4px 16px -6px rgba(200,40,90,.12)}', '#main .estat .ev,#main .cf-kpi .v{font-family:"Fraunces",Georgia,serif;font-weight:700}', '#tb-tabs .tb-tab.on{border-radius:999px;background:rgba(239,26,107,.2);color:#ffd7e6}' ])
+  +T('reef',[ 'aside#rail,#rail{background:linear-gradient(180deg,#3b0862,#2e0650) !important;box-shadow:inset -1px 0 0 rgba(255,167,0,.35)}', '#main .card,#main .lr-wrap,#main .estat,#main .cf-kpi{border-color:#e6dcf4}', '#main .estat .ev,#main .cf-kpi .v{font-family:"IBM Plex Sans",sans-serif;font-weight:700}', '#tb-tabs .tb-tab.on{background:transparent;border-radius:0;box-shadow:inset 0 -2px 0 #ffa700}' ])
+  +T('lagoon',[ 'aside#rail,#rail{background:linear-gradient(180deg,#0b3f47,#093840) !important}', '#main .card,#main .lr-wrap,#main .estat,#main .cf-kpi{border-color:#e2d8c4}', '#main .estat .ev,#main .cf-kpi .v{font-family:"Cormorant Garamond",Georgia,serif;font-weight:700}' ])
+  +T('palmwave',[ 'aside#rail,#rail{background:linear-gradient(180deg,#0b0b12,#08080d) !important;box-shadow:inset -1px 0 0 rgba(212,255,58,.14)}', '#main .card,#main .lr-wrap,#main .estat,#main .cf-kpi{background:linear-gradient(180deg,#16161f,#111119);border-color:#22222f}', '#main .estat .ev,#main .cf-kpi .v{font-family:"JetBrains Mono",monospace;letter-spacing:-.02em}', '#main .lr-wrap th,#main .bm th{color:#d4ff3a}' ]);
+  /* ---- ICONOGRAPHY PASS: per-theme icon weight + shape language ---- */
+  CSS+=''
+  +'html[data-theme="tahoe"]{--icow:2;--ic-r:12px}'
+  +'html[data-theme="desertnight"]{--icow:1.5;--ic-r:8px}'
+  +'html[data-theme="sunny"]{--icow:2.2;--ic-r:50%}'
+  +'html[data-theme="bloom"]{--icow:2.6;--ic-r:50%}'
+  +'html[data-theme="reef"]{--icow:2;--ic-r:10px}'
+  +'html[data-theme="lagoon"]{--icow:1.8;--ic-r:10px}'
+  +'html[data-theme="palmwave"]{--icow:2.4;--ic-r:7px}'
+  +'html[data-theme] .pc-av,html[data-theme] .prm-dot{border-radius:var(--ic-r,50%)}'
+  +'html[data-theme] .bm-dot,html[data-theme] .tl-chk,html[data-theme] #lo-cf .cf-bill .ck{border-radius:calc(var(--ic-r,7px)/1.6)}'
+  +T('bloom',[ '.ai-skill,.pc-tag,.bm-paidpill{border-radius:999px}' ])
+  +T('sunny',[ '.ai-skill,.pc-tag{border-radius:999px}' ])
+  +T('palmwave',[ '.ai-skill{border-radius:8px}', '.pc-av{font-family:"JetBrains Mono",monospace}' ])
+  +T('desertnight',[ '.pc-av{background:color-mix(in srgb,var(--c,#ee8a4c) 80%,#000);font-family:"Cormorant Garamond",serif;font-weight:700}' ]);
   var FONTS='https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400..700&display=swap';
   function ensure(){
     var el=document.getElementById('lo-truethemes-css');
@@ -3127,8 +3151,381 @@
   if(document.readyState!=='loading') install();
 })();
 
+/* ====================================================================
+   Block 56 — Cash Flow: month time spectrum + bank-balance line.
+   Replaces the Cash Flow tab (MoneyEngine.render wrap, GOTCHA 6) with
+   a year view on the REAL household data (MV2._data INCOME/BILLS,
+   fallback state.income/state.bills):
+   · KPI band — income / outflow / net / savings rate (owner filter).
+   · MONTH SPECTRUM — Jan–Dec strip, net per month, paid-coverage bar
+     fed by the Bill Tracker's state.billsPaidYear, current month
+     ringed; click a month to drill into its income + bills (due-day
+     sorted, tap a bill to toggle paid — same LifeOSBillYear.toggle).
+   · BANK BALANCE — SVG line graph of projected balance across the
+     year, anchored at today's cash-account total (checking/savings/
+     cash), ‹year› navigation shared with the spectrum.
+   API: window.LifeOSCashFlow {year,owner,sel,months12,nav,setOwner,
+   select,render}.
+   ==================================================================== */
+(function(){
+  var E=function(s){ return (''+(s==null?'':s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+  function months12(y){ var out=[],now=new Date(); for(var m=0;m<12;m++){ var d=new Date(y,m,1); out.push({ ym:y+'-'+(m+1<10?'0':'')+(m+1), label:d.toLocaleDateString(undefined,{month:'short'}), idx:m, cur:(y===now.getFullYear()&&m===now.getMonth()) }); } return out; }
+  function st(){ try{ return window.LifeOS?window.LifeOS.get():{}; }catch(e){ return {}; } }
+  function incomes(){
+    try{ if(window.MV2&&MV2._data&&Array.isArray(MV2._data.INCOME)&&MV2._data.INCOME.length){
+      return MV2._data.INCOME.map(function(x){ return {name:x.n,mo:+x.m||0,owner:x.o||'Joint'}; }); } }catch(e){}
+    try{ return (st().income||[]).map(function(x){ var mo=(x.cadence==='yearly')?(+x.amount||0)/12:(+x.amount||0); return {name:x.label||x.name||'Income',mo:mo,owner:'Joint'}; }); }catch(e){ return []; }
+  }
+  function billRows(){
+    try{ if(window.MV2&&MV2._data&&Array.isArray(MV2._data.BILLS)&&MV2._data.BILLS.length){
+      return MV2._data.BILLS.map(function(b){ return {key:b.n,name:b.n,mo:+b.a||0,due:+b.d||0,owner:b.o||'Joint',au:!!b.au}; }); } }catch(e){}
+    try{ return (st().bills||[]).map(function(b){ return {key:b.id||b.name,name:b.name,mo:+b.amount||0,due:+b.due||0,owner:'Joint',au:false}; }); }catch(e){ return []; }
+  }
+  function cashAnchor(){
+    try{ var acc=st().accounts||[]; var t=0,found=false;
+      for(var i=0;i<acc.length;i++){ var a=acc[i]; if(/check|sav|cash/i.test(a.type||'')){ t+=(+a.balance||0); found=true; } }
+      if(!found){ for(var j=0;j<acc.length;j++){ var b=+acc[j].balance||0; if(b>0) t+=b; } }
+      return t; }catch(e){ return 0; }
+  }
+  function paidFor(key,ym){ try{ var o=(st().billsPaidYear||{})[key]||{}; if(Object.prototype.hasOwnProperty.call(o,ym)) return !!o[ym]; }catch(e){} return false; }
+  function fmt$(n){ n=Math.round(n); var a=Math.abs(n); var s=(n<0?'-$':'$'); if(a>=1e6) return s+(a/1e6).toFixed(2)+'M'; if(a>=1e4) return s+Math.round(a/1e3)+'k'; return s+a.toLocaleString(); }
+  window.LifeOSCashFlow={
+    year:(new Date()).getFullYear(), owner:'Both', sel:(new Date()).getMonth(), months12:months12,
+    nav:function(d){ this.year=(+this.year||new Date().getFullYear())+(d|0); rerender(); },
+    setOwner:function(o){ this.owner=o; rerender(); },
+    select:function(i){ this.sel=(+i)||0; rerender(); },
+    render:function(){ rerender(); }
+  };
+  function rerender(){ try{ if(window.MoneyEngine&&MoneyEngine.tab==='cashflow'&&typeof MoneyEngine.render==='function') MoneyEngine.render(); }catch(e){} }
+  function css(){
+    if(document.getElementById('lo-cashflow-css')||!document.head)return;
+    document.head.insertAdjacentHTML('beforeend','<style id="lo-cashflow-css">'
+    +'#lo-cf .cf-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:2px 0 16px}'
+    +'#lo-cf .cf-kpi{border:1px solid var(--line-1);border-left:3px solid var(--k,var(--accent));border-radius:var(--r-md,13px);background:var(--bg-2);box-shadow:var(--e-1);padding:13px 15px}'
+    +'#lo-cf .cf-kpi .v{font-family:var(--display);font-size:22px;font-weight:800;color:var(--fg-1);line-height:1.1}'
+    +'#lo-cf .cf-kpi .l{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-4);margin-top:4px}'
+    +'#lo-cf .cf-bar{display:flex;align-items:center;gap:10px;margin:0 0 12px;flex-wrap:wrap}'
+    +'#lo-cf .cf-bar .yb-b{border:1px solid var(--line-2);background:var(--bg-2);color:var(--fg-2);border-radius:8px;width:26px;height:26px;cursor:pointer;font-size:13px;line-height:1}'
+    +'#lo-cf .cf-bar .yb-b:hover{color:var(--fg-1);border-color:var(--accent)}'
+    +'#lo-cf .cf-bar .yb-y{font-family:var(--mono);font-weight:800;font-size:14px;color:var(--fg-1)}'
+    +'#lo-cf .cf-own{display:inline-flex;gap:3px;background:var(--bg-3,var(--bg-1));border-radius:999px;padding:3px}'
+    +'#lo-cf .cf-own button{background:none;border:none;color:var(--fg-3);font-size:12px;font-weight:600;padding:5px 13px;border-radius:999px;cursor:pointer}'
+    +'#lo-cf .cf-own button.on{background:var(--accent);color:var(--on-accent,#fff)}'
+    +'#lo-cf .cf-spectrum{display:grid;grid-template-columns:repeat(12,1fr);gap:7px;margin:0 0 18px}'
+    +'@media(max-width:980px){#lo-cf .cf-spectrum{grid-template-columns:repeat(6,1fr)}}'
+    +'#lo-cf .cf-m{position:relative;border:1px solid var(--line-1);border-radius:11px;background:linear-gradient(180deg,color-mix(in srgb,var(--mc,#22c074) calc(var(--mi,10)*1%),var(--bg-2)),var(--bg-2));padding:9px 8px 8px;cursor:pointer;text-align:center;transition:border-color .16s var(--ease,ease),background .16s}'
+    +'#lo-cf .cf-m:hover{border-color:color-mix(in srgb,var(--mc,var(--accent)) 55%,var(--line-1))}'
+    +'#lo-cf .cf-m.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}'
+    +'#lo-cf .cf-m.cur::after{content:"";position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--accent)}'
+    +'#lo-cf .cf-m .mn{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-3)}'
+    +'#lo-cf .cf-m .nv{font-size:12px;font-weight:700;color:var(--fg-1);margin-top:2px;white-space:nowrap}'
+    +'#lo-cf .cf-m .pp{height:3px;border-radius:99px;background:var(--bg-3,var(--bg-1));margin-top:6px;overflow:hidden}'
+    +'#lo-cf .cf-m .pp i{display:block;height:100%;background:var(--mc,var(--accent));border-radius:99px}'
+    +'#lo-cf .cf-chartwrap{border:1px solid var(--line-1);border-radius:var(--r-md,13px);background:var(--bg-2);box-shadow:var(--e-1);padding:16px 18px 8px;margin:0 0 18px}'
+    +'#lo-cf .cf-ct{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-3);display:flex;justify-content:space-between;margin-bottom:6px}'
+    +'#lo-cf .cf-ct b{color:var(--accent)}'
+    +'#lo-cf .cf-drill{border:1px solid var(--line-1);border-radius:var(--r-md,13px);background:var(--bg-2);box-shadow:var(--e-1);padding:15px 17px}'
+    +'#lo-cf .cf-dh{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}'
+    +'#lo-cf .cf-dh h3{margin:0;font-size:15px;font-weight:800}'
+    +'#lo-cf .cf-dh span{font-family:var(--mono);font-size:11px;color:var(--fg-3)}'
+    +'#lo-cf .cf-cols{display:grid;grid-template-columns:1fr 1.4fr;gap:18px}'
+    +'@media(max-width:900px){#lo-cf .cf-cols{grid-template-columns:1fr}}'
+    +'#lo-cf .cf-st{font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-4);margin:0 0 7px}'
+    +'#lo-cf .cf-line{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--fg-1) 6%,transparent)}'
+    +'#lo-cf .cf-line:last-child{border-bottom:none}'
+    +'#lo-cf .cf-line b{font-weight:600;color:var(--fg-1)}'
+    +'#lo-cf .cf-line .amt{font-family:var(--mono);color:var(--fg-2);white-space:nowrap}'
+    +'#lo-cf .cf-bill{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--fg-1) 6%,transparent);cursor:pointer}'
+    +'#lo-cf .cf-bill:last-child{border-bottom:none}'
+    +'#lo-cf .cf-bill .ck{width:17px;height:17px;flex:none;border-radius:5px;border:1px solid var(--line-2);background:var(--bg-1);color:#fff;font-size:10px;line-height:1;display:grid;place-items:center}'
+    +'#lo-cf .cf-bill.paid .ck{background:#1f9d57;border-color:#1f9d57}'
+    +'#lo-cf .cf-bill.paid b{opacity:.6;text-decoration:line-through}'
+    +'#lo-cf .cf-bill b{flex:1;font-weight:600;color:var(--fg-1)}'
+    +'#lo-cf .cf-bill .dd{font-family:var(--mono);font-size:9.5px;color:var(--fg-4);flex:none}'
+    +'#lo-cf .cf-bill .amt{font-family:var(--mono);color:var(--fg-2);flex:none}'
+    +'</style>');
+  }
+  function ownerPass(o,owner){ return owner==='Both'||o===owner||o==='Joint'; }
+  function view(){
+    css();
+    var el=document.getElementById('view-surface'); if(!el) return false;
+    var C=window.LifeOSCashFlow; var y=+C.year||new Date().getFullYear(); var ms=months12(y); var ow=C.owner;
+    if(C.sel==null||C.sel<0||C.sel>11) C.sel=new Date().getMonth();
+    var inc=incomes().filter(function(x){return ownerPass(x.owner,ow);});
+    var bls=billRows().filter(function(x){return ownerPass(x.owner,ow);});
+    var incMo=0; inc.forEach(function(x){ incMo+=x.mo; });
+    var outMo=0; bls.forEach(function(x){ outMo+=x.mo; });
+    var net=incMo-outMo; var rate=incMo?Math.round(net/incMo*100):0;
+    var maxAbs=Math.max(Math.abs(net),1);
+    /* balance trajectory: anchor cash at the CURRENT month of the CURRENT year */
+    var now=new Date(); var anchor=cashAnchor();
+    var curAbs=now.getFullYear()*12+now.getMonth();
+    var bal=ms.map(function(m){ var abs=y*12+m.idx; return anchor+net*(abs-curAbs); });
+    /* spectrum cells */
+    var cells=ms.map(function(m){
+      var paidN=0; bls.forEach(function(b){ if(paidFor(b.key,m.ym)) paidN++; });
+      var pct=bls.length?Math.round(paidN/bls.length*100):0;
+      var mc=net>=0?'#22c074':'#e0394f';
+      var mi=Math.min(28,Math.round(Math.abs(net)/maxAbs*28))+4;
+      return '<div class="cf-m'+(m.cur?' cur':'')+(C.sel===m.idx?' sel':'')+'" style="--mc:'+mc+';--mi:'+mi+'" onclick="LifeOSCashFlow.select('+m.idx+')" title="'+E(m.label)+' · net '+fmt$(net)+' · '+pct+'% of bills paid"><div class="mn">'+E(m.label)+'</div><div class="nv">'+(net>=0?'+':'')+fmt$(net)+'</div><div class="pp"><i style="width:'+pct+'%"></i></div></div>';
+    }).join('');
+    /* SVG balance line */
+    var W=980,H=230,P=46,B=30;
+    var mn=Math.min.apply(null,bal), mx=Math.max.apply(null,bal); var rg=(mx-mn)||1;
+    function px(i){ return P+i/11*(W-P-14); } function py(v){ return 14+(1-(v-mn)/rg)*(H-14-B); }
+    var pts=bal.map(function(v,i){ return px(i).toFixed(1)+','+py(v).toFixed(1); }).join(' ');
+    var area='M'+px(0).toFixed(1)+','+(H-B)+' L'+pts.split(' ').join(' L')+' L'+px(11).toFixed(1)+','+(H-B)+' Z';
+    var dots=bal.map(function(v,i){ var m=ms[i]; return '<circle cx="'+px(i).toFixed(1)+'" cy="'+py(v).toFixed(1)+'" r="'+(m.cur?4:2.6)+'" fill="'+(m.cur?'var(--accent)':'color-mix(in srgb,var(--accent) 70%,transparent)')+'"'+(m.cur?' stroke="var(--bg-2)" stroke-width="2"':'')+'><title>'+E(m.label)+' '+y+' · '+fmt$(v)+'</title></circle>'; }).join('');
+    var ticks=ms.map(function(m,i){ return '<text x="'+px(i).toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle" font-size="8.5" fill="var(--fg-4)" font-family="var(--mono)" letter-spacing=".06em">'+E(m.label.toUpperCase())+'</text>'; }).join('');
+    var gl=[0,.5,1].map(function(f){ var v=mn+rg*f; var yy=py(v); return '<line x1="'+P+'" y1="'+yy.toFixed(1)+'" x2="'+(W-14)+'" y2="'+yy.toFixed(1)+'" stroke="color-mix(in srgb,var(--fg-1) 7%,transparent)" stroke-dasharray="3 4"/><text x="'+(P-7)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end" font-size="8.5" fill="var(--fg-4)" font-family="var(--mono)">'+fmt$(v)+'</text>'; }).join('');
+    var chart='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" preserveAspectRatio="none" style="display:block">'
+      +gl
+      +'<path d="'+area+'" fill="color-mix(in srgb,var(--accent) 10%,transparent)"/>'
+      +'<polyline points="'+pts+'" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'
+      +dots+ticks+'</svg>';
+    /* drill panel */
+    var sm=ms[C.sel]; var paidSel=0; bls.forEach(function(b){ if(paidFor(b.key,sm.ym)) paidSel++; });
+    var incLines=inc.map(function(x){ return '<div class="cf-line"><b>'+E(x.name)+'</b><span class="amt">+'+fmt$(x.mo)+' · '+E(x.owner).toUpperCase()+'</span></div>'; }).join('')||'<p class="sub">No income sources.</p>';
+    var billLines=bls.slice().sort(function(a,b){return (a.due||99)-(b.due||99);}).map(function(b){
+      var on=paidFor(b.key,sm.ym);
+      return '<div class="cf-bill'+(on?' paid':'')+'" onclick="LifeOSBillYear&&LifeOSBillYear.toggle(\''+E(b.key).replace(/'/g,'&#39;')+'\',\''+sm.ym+'\');LifeOSCashFlow.render()"><span class="ck">'+(on?'✓':'')+'</span><b>'+E(b.name)+'</b><span class="dd">'+(b.due?'due '+b.due:'')+(b.au?' · auto':'')+'</span><span class="amt">−'+fmt$(b.mo)+'</span></div>';
+    }).join('')||'<p class="sub">No bills.</p>';
+    var owners=['Both','Travis','Tan'];
+    var ownseg='<span class="cf-own">'+owners.map(function(o){ return '<button class="'+(ow===o?'on':'')+'" onclick="LifeOSCashFlow.setOwner(\''+o+'\')">'+o+'</button>'; }).join('')+'</span>';
+    el.innerHTML='<div class="surf-head" style="--c:#1f9d57"><div class="surf-bar"></div><div><p class="eyebrow" style="color:#1f9d57">Money</p><h1>Money management</h1></div></div>'
+      +'<div id="lo-cf">'
+      +'<p class="sub" style="margin:0 0 12px">Cash flow across the year — the month spectrum fills in as you mark bills paid, and the line shows where your bank balance lands.</p>'
+      +'<div class="cf-kpis">'
+      +'<div class="cf-kpi" style="--k:#22c074"><div class="v">'+fmt$(incMo)+'</div><div class="l">income / mo</div></div>'
+      +'<div class="cf-kpi" style="--k:#e0394f"><div class="v">'+fmt$(outMo)+'</div><div class="l">outflow / mo</div></div>'
+      +'<div class="cf-kpi" style="--k:var(--accent)"><div class="v">'+(net>=0?'+':'')+fmt$(net)+'</div><div class="l">net / mo</div></div>'
+      +'<div class="cf-kpi" style="--k:#c2891b"><div class="v">'+rate+'%</div><div class="l">savings rate</div></div>'
+      +'</div>'
+      +'<div class="cf-bar"><button class="yb-b" onclick="LifeOSCashFlow.nav(-1)" title="Previous year">‹</button><span class="yb-y">'+y+'</span><button class="yb-b" onclick="LifeOSCashFlow.nav(1)" title="Next year">›</button>'+ownseg+'</div>'
+      +'<div class="cf-spectrum">'+cells+'</div>'
+      +'<div class="cf-chartwrap"><div class="cf-ct"><span>Bank balance · projected</span><b>'+fmt$(bal[0])+' → '+fmt$(bal[11])+'</b></div>'+chart+'</div>'
+      +'<div class="cf-drill"><div class="cf-dh"><h3>'+E(sm.label)+' '+y+'</h3><span>net '+(net>=0?'+':'')+fmt$(net)+' · '+paidSel+'/'+bls.length+' bills paid · balance '+fmt$(bal[C.sel])+'</span></div>'
+      +'<div class="cf-cols"><div><p class="cf-st">Income</p>'+incLines+'</div><div><p class="cf-st">Bills — tap to mark paid</p>'+billLines+'</div></div></div>'
+      +'</div>';
+    return true;
+  }
+  function install(){
+    var M=window.MoneyEngine; if(!M||typeof M.render!=='function') return false;
+    if(M.render.__cfspec) return true;
+    var base=M.render.bind(M);
+    M.render=function(){ if(this.tab==='cashflow'){ try{ if(view()) return; }catch(e){} } return base.apply(this,arguments); };
+    M.render.__cfspec=true;
+    try{ if(M.tab==='cashflow'&&(location.hash||'').indexOf('money')>-1) M.render(); }catch(e){}
+    return true;
+  }
+  var __cs=[90,420,1300,3000]; for(var __ci=0;__ci<__cs.length;__ci++) setTimeout(install,__cs[__ci]);
+  var __civ=setInterval(function(){ if(install()) clearInterval(__civ); },3000);
+  if(typeof window.addEventListener==='function') window.addEventListener('hashchange', function(){ setTimeout(install,110); });
+  if(document.readyState!=='loading') install();
+})();
 
-/* deploy-nonce 1782946014 */</script>
+/* ====================================================================
+   Block 57 — Hover-lock, comprehensively. A CSSOM census found 41
+   :hover rules that translate/scale cards, rows, metrics, KPIs and
+   overlay cards (.mx-card, .ucard, .lr-card, .estat, .lr-metric,
+   .hc, .h3-kpi, .dcard, .cmd-card, .dx-card, .hz-c, .bc-card,
+   .cc-kpi/.cc-card, .tlblk, .trow, task rows, #losx expanded cards,
+   AI-rail chips…). Cards must NEVER move on hover — kill transforms
+   everywhere they hover, app-wide (press feedback via :active stays).
+   API: window.LifeOSHoverLock {ensure, CSS}.
+   ==================================================================== */
+(function(){
+  var CSS=''
+  +':is([class*="card"],[class*="-row"],[class*="row-"],[class*="metric"],[class*="kpi"],[class*="estat"],'
+  +'.ucard,.dcard,.hc,.hz-c,.tlblk,.trow,.task,.ai-skill,.arb,.ai-rail-orb,.cf-m,.bm-dot,'
+  +'[data-id],[class*="tile"],[class*="chip"],[class*="pill"],[class*="cell"]):hover{transform:none !important}'
+  +'#losx *:hover,[id*="-scr"] *:hover,[class*="ov"] [class*="card"]:hover{transform:none !important}'
+  +'#main *:hover{scale:none !important}';
+  function ensure(){
+    var el=document.getElementById('lo-hoverlock-css');
+    if(el){ if(el.textContent!==CSS){ try{ el.textContent=CSS; }catch(e){} } }
+    else if(document.head||document.documentElement){ el=document.createElement('style'); el.id='lo-hoverlock-css'; el.textContent=CSS; (document.head||document.documentElement).appendChild(el); }
+  }
+  ensure(); setInterval(ensure,3000);
+  if(typeof window.addEventListener==='function') window.addEventListener('hashchange', function(){ setTimeout(ensure,90); });
+  window.LifeOSHoverLock={ ensure:ensure, CSS:CSS };
+})();
+
+/* ====================================================================
+   Block 58 — Contact cards, built out. Replaces the People → Circles
+   roster rows with full contact cards: initials avatar (circle
+   color), name · relation · role @ company, in-touch/reach-out chip,
+   cadence-health bar, last-touch + channel + location + birthday,
+   note, tags, and actions — ✓ Reached (logs today), Open, call /
+   email links. Grouped by Inner / Middle / Outer with counts.
+   Uses PeopleEngine.{status,color,initials,markReached,open}.
+   API: window.LifeOSContacts {card, CSS}.
+   ==================================================================== */
+(function(){
+  var E=function(s){ return (''+(s==null?'':s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+  var CSS=''
+  +'.pcc{display:grid;grid-template-columns:repeat(auto-fill,minmax(295px,1fr));gap:13px;align-items:start;margin:4px 0 22px}'
+  +'.pc-card{border:1px solid var(--line-1);border-left:3px solid var(--c,var(--accent));border-radius:var(--r-md,13px);background:var(--bg-2);box-shadow:var(--e-1);padding:14px 15px;transition:border-color .18s var(--ease,ease),box-shadow .18s}'
+  +'.pc-card:hover{border-color:color-mix(in srgb,var(--c,var(--accent)) 50%,var(--line-1));box-shadow:var(--e-2)}'
+  +'.pc-top{display:flex;align-items:center;gap:11px}'
+  +'.pc-av{width:38px;height:38px;flex:none;border-radius:var(--ic-r,50%);background:var(--c,var(--accent));color:#fff;font-weight:800;font-size:13px;display:grid;place-items:center;letter-spacing:.02em}'
+  +'.pc-nm{flex:1;min-width:0}'
+  +'.pc-nm b{display:block;font-size:14.5px;font-weight:700;color:var(--fg-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+  +'.pc-nm span{display:block;font-size:11px;color:var(--fg-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}'
+  +'.pc-chip{flex:none;font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;border-radius:999px;padding:3px 8px}'
+  +'.pc-chip.ok{color:var(--good,#21a366);background:color-mix(in srgb,var(--good,#21a366) 14%,transparent)}'
+  +'.pc-chip.over{color:var(--bad,#e0394f);background:color-mix(in srgb,var(--bad,#e0394f) 14%,transparent)}'
+  +'.pc-health{height:4px;border-radius:99px;background:var(--bg-3,var(--bg-1));margin:11px 0 9px;overflow:hidden}'
+  +'.pc-health i{display:block;height:100%;border-radius:99px;transition:width .3s var(--ease,ease)}'
+  +'.pc-meta{display:flex;flex-wrap:wrap;gap:5px 13px;font-size:11px;color:var(--fg-3)}'
+  +'.pc-meta span{white-space:nowrap}'
+  +'.pc-note{font-size:12px;color:var(--fg-2);line-height:1.45;margin:9px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}'
+  +'.pc-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}'
+  +'.pc-tag{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.05em;color:var(--fg-3);background:color-mix(in srgb,var(--fg-1) 6%,transparent);border:1px solid var(--line-1);border-radius:6px;padding:2px 7px;text-transform:uppercase}'
+  +'.pc-acts{display:flex;align-items:center;gap:7px;margin-top:12px;padding-top:11px;border-top:1px solid color-mix(in srgb,var(--fg-1) 7%,transparent)}'
+  +'.pc-lnk{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);text-decoration:none;margin-left:auto}'
+  +'.pc-lnk+.pc-lnk{margin-left:10px}'
+  +'.pc-gh{display:flex;align-items:baseline;gap:10px;margin:20px 0 10px}'
+  +'.pc-gh:first-child{margin-top:2px}'
+  +'.pc-gh h2{margin:0;font-size:16px;font-weight:800}'
+  +'.pc-gh .ct{font-family:var(--mono);font-size:10.5px;font-weight:800;color:var(--gc,var(--accent));background:color-mix(in srgb,var(--gc,var(--accent)) 14%,transparent);border-radius:999px;padding:2px 9px}'
+  +'.pc-gh .ds{font-size:11.5px;color:var(--fg-3)}';
+  function css(){
+    var el=document.getElementById('lo-contactcards-css');
+    if(el){ if(el.textContent!==CSS){ try{ el.textContent=CSS; }catch(e){} } }
+    else if(document.head||document.documentElement){ el=document.createElement('style'); el.id='lo-contactcards-css'; el.textContent=CSS; (document.head||document.documentElement).appendChild(el); }
+  }
+  function card(p){
+    var PE=window.PeopleEngine; var st=PE.status(p); var col=PE.color(p);
+    var due=st.ds>=9999?'never contacted':('last touch '+st.ds+'d ago');
+    var chip=st.overdue?'<span class="pc-chip over">reach out</span>':'<span class="pc-chip ok">in touch</span>';
+    var sub=[E(p.relation||''),p.role?E(p.role):'',p.company?'@ '+E(p.company):''].filter(Boolean).join(' · ');
+    var tags=(p.tags||[]).map(function(t){return '<span class="pc-tag">'+E(t)+'</span>';}).join('');
+    return '<div class="pc-card" style="--c:'+col+'">'
+      +'<div class="pc-top"><span class="pc-av">'+E(PE.initials(p.name))+'</span><div class="pc-nm"><b>'+E(p.name)+'</b><span>'+(sub||'—')+'</span></div>'+chip+'</div>'
+      +'<div class="pc-health"><i style="width:'+st.health+'%;background:'+st.ring+'"></i></div>'
+      +'<div class="pc-meta"><span>↺ every '+st.cad+'d · '+E(p.channel||'any channel')+'</span><span>'+due+'</span>'+(p.location?'<span>◦ '+E(p.location)+'</span>':'')+(p.birthday?'<span>★ '+E(p.birthday)+'</span>':'')+'</div>'
+      +(p.note?'<p class="pc-note">'+E(p.note)+'</p>':'')
+      +(tags?'<div class="pc-tags">'+tags+'</div>':'')
+      +'<div class="pc-acts"><button class="btn small" onclick="PeopleEngine.markReached(\''+E(p.id)+'\')">✓ Reached</button><button class="btn ghost small" onclick="PeopleEngine.open(\''+E(p.id)+'\')">Open</button>'
+      +(p.phone?'<a class="pc-lnk" href="tel:'+E(String(p.phone).replace(/[^0-9+]/g,''))+'">call</a>':'')
+      +(p.email?'<a class="pc-lnk" href="mailto:'+E(p.email)+'">email</a>':'')
+      +'</div></div>';
+  }
+  window.LifeOSContacts={ card:card, CSS:CSS };
+  function view(){
+    css();
+    var host=document.querySelector('#p-body'); if(!host) return false;
+    var ppl=[]; try{ ppl=(window.LifeOS.get().people)||[]; }catch(e){}
+    var groups=[['inner','Inner circle','The people you protect time for.','#d6357f'],['middle','Middle circle','Close friends and mentors.','#7c4dd6'],['outer','Outer circle','Keep warm, lower cadence.','#2563c9']];
+    host.innerHTML=groups.map(function(g){
+      var arr=ppl.filter(function(p){return (p.circle||'outer')===g[0];});
+      if(!arr.length) return '';
+      arr.sort(function(a,b){ return window.PeopleEngine.status(b).ratio-window.PeopleEngine.status(a).ratio; });
+      return '<div class="pc-gh" style="--gc:'+g[3]+'"><h2>'+g[1]+'</h2><span class="ct">'+arr.length+'</span><span class="ds">'+g[2]+'</span></div>'
+        +'<div class="pcc">'+arr.map(card).join('')+'</div>';
+    }).join('')||'<p class="sub">No people yet.</p>';
+    return true;
+  }
+  function install(){
+    var PE=window.PeopleEngine;
+    if(!PE||typeof PE.tab_circles!=='function') return false;
+    if(PE.tab_circles.__cards) return true;
+    var base=PE.tab_circles.bind(PE);
+    PE.tab_circles=function(){ try{ if(view()) return; }catch(e){} return base(); };
+    PE.tab_circles.__cards=true;
+    try{ if(PE.tab==='circles'&&(location.hash||'').indexOf('people')>-1&&typeof PE.render==='function') PE.render(); }catch(e){}
+    return true;
+  }
+  var __ks=[90,420,1300,3000]; for(var __ki=0;__ki<__ks.length;__ki++) setTimeout(install,__ks[__ki]);
+  var __kiv=setInterval(function(){ if(install()) clearInterval(__kiv); },3000);
+  if(document.readyState!=='loading') install();
+})();
+
+/* ====================================================================
+   Block 59 — Mobile build: beautiful on a phone. ≤760px the rail
+   becomes a slide-in sheet, a fixed bottom tab bar appears (Today ·
+   Tasks · Money · People · More) with per-theme iconography (inline
+   SVGs drawn at var(--icow) stroke weight — thin for Dune & Dusk,
+   bold for Palmwave/Bloom — and var(--ic-r) shape language), the
+   topbar condenses (metrics hidden, scrollable tabs), touch targets
+   grow (30px paid dots), layouts collapse to one column, and
+   safe-area insets are respected. API: window.LifeOSMobile
+   {ensure, nav, CSS}.
+   ==================================================================== */
+(function(){
+  var IC={
+    today:'<svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/></svg>',
+    tasks:'<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><path d="m8 12.5 2.6 2.6L16.5 9"/></svg>',
+    money:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.4v9.2M14.8 9.2c-.6-1-1.6-1.4-2.8-1.4-1.5 0-2.7.8-2.7 2.1 0 2.8 5.6 1.4 5.6 4.2 0 1.3-1.3 2.1-2.9 2.1-1.3 0-2.4-.5-3-1.5"/></svg>',
+    people:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.4"/><path d="M2.8 19.6c.7-3 3.2-4.8 6.2-4.8s5.5 1.8 6.2 4.8"/><circle cx="17.2" cy="9.6" r="2.6"/><path d="M15.4 14.9c2.6.1 4.9 1.6 5.8 4.2"/></svg>',
+    more:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.6" height="6.6" rx="1.8"/><rect x="13.4" y="4" width="6.6" height="6.6" rx="1.8"/><rect x="4" y="13.4" width="6.6" height="6.6" rx="1.8"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="1.8"/></svg>'
+  };
+  var CSS=''
+  +'#lo-mnav{display:none}'
+  +'#lo-mnav-veil{display:none}'
+  +'@media (max-width:760px){'
+  +'aside#rail,#rail{position:fixed !important;left:0;top:0;bottom:0;z-index:1200;width:min(80vw,300px) !important;transform:translateX(-105%);transition:transform .28s var(--ease,ease);overflow-y:auto}'
+  +'body.lo-mnav-open aside#rail,body.lo-mnav-open #rail{transform:none;box-shadow:24px 0 60px rgba(0,0,0,.5)}'
+  +'body.lo-mnav-open #lo-mnav-veil{display:block;position:fixed;inset:0;z-index:1150;background:var(--veil,rgba(0,0,0,.5));backdrop-filter:blur(2px)}'
+  +'#main{margin-left:0 !important;width:100% !important;max-width:100% !important;padding:12px 12px calc(78px + env(safe-area-inset-bottom)) !important}'
+  +'#topbar{padding:0 8px !important}'
+  +'#tb-metrics,.tb-pulse,#tb-pulse{display:none !important}'
+  +'#tb-tabs{padding:0 4px !important}'
+  +'#tb-tabs .tb-tab{padding:9px 11px;font-size:12px;flex:none}'
+  +'#main h1{font-size:clamp(21px,6vw,26px) !important}'
+  +'#lo-mnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:1100;justify-content:space-around;align-items:stretch;background:color-mix(in srgb,var(--chrome-bg,#101018) 88%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--chrome-line,rgba(255,255,255,.1));padding:6px 4px calc(7px + env(safe-area-inset-bottom))}'
+  +'.lo-mb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;color:var(--chrome-fg3,#98a);font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;padding:6px 2px;min-height:50px;border-radius:12px;cursor:pointer}'
+  +'.lo-mb svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:var(--icow,2);stroke-linecap:round;stroke-linejoin:round}'
+  +'.lo-mb.on{color:var(--accent)}'
+  +'.lo-mb:active{transform:scale(.94)}'
+  +'#view-tasks #task-board.board{grid-template-columns:1fr !important;padding:10px}'
+  +'#lo-cf .cf-spectrum{grid-template-columns:repeat(4,1fr)}'
+  +'#lo-cf .cf-cols{grid-template-columns:1fr}'
+  +'.bm-dot{width:30px !important;height:30px !important}'
+  +'.estband{flex-wrap:wrap}'
+  +'.mvc-split,.ct2col,.grid2{grid-template-columns:1fr !important;display:grid}'
+  +'.pcc{grid-template-columns:1fr}'
+  +'#lo-boundaries .bnd-grid{grid-template-columns:1fr}'
+  +'.lr-search{max-width:none}'
+  +'}';
+  var VIEWS=[['today','Today','today'],['tasks','Tasks','tasks'],['money','Money','money'],['people','People','people']];
+  function go(v){
+    try{ var nb=document.querySelector('.navbtn[data-view="'+v+'"]'); if(nb){ nb.click(); } else { location.hash='#/'+v; } }catch(e){ try{ location.hash='#/'+v; }catch(x){} }
+    try{ document.body.classList.remove('lo-mnav-open'); }catch(e){}
+    setTimeout(mark,150);
+  }
+  function mark(){
+    var h=(location.hash||'').replace(/^#\//,'');
+    var bar=document.getElementById('lo-mnav'); if(!bar||!bar.querySelectorAll) return;
+    var all=bar.querySelectorAll('.lo-mb');
+    for(var i=0;i<all.length;i++){ var b=all[i]; var v=b.getAttribute('data-v'); if(b.classList&&b.classList.toggle) b.classList.toggle('on', v!=='more'&&h.indexOf(v)===0); }
+  }
+  function build(){
+    if(document.getElementById('lo-mnav')||!document.body) return;
+    var veil=document.createElement('div'); veil.id='lo-mnav-veil'; veil.onclick=function(){ document.body.classList.remove('lo-mnav-open'); };
+    var bar=document.createElement('nav'); bar.id='lo-mnav'; bar.setAttribute('aria-label','Mobile navigation');
+    for(var i=0;i<VIEWS.length;i++){ (function(vd){ var b=document.createElement('button'); b.className='lo-mb'; b.setAttribute('data-v',vd[0]); b.innerHTML=(IC[vd[2]]||'')+'<span>'+vd[1]+'</span>'; b.onclick=function(){ go(vd[0]); }; bar.appendChild(b); })(VIEWS[i]); }
+    var more=document.createElement('button'); more.className='lo-mb'; more.setAttribute('data-v','more'); more.innerHTML=IC.more+'<span>More</span>';
+    more.onclick=function(){ try{ document.body.classList.toggle('lo-mnav-open'); }catch(e){} };
+    bar.appendChild(more);
+    document.body.appendChild(veil); document.body.appendChild(bar);
+    if(typeof window.addEventListener==='function') window.addEventListener('hashchange', function(){ setTimeout(mark,120); });
+    mark();
+  }
+  function ensure(){
+    var el=document.getElementById('lo-mobile-css');
+    if(el){ if(el.textContent!==CSS){ try{ el.textContent=CSS; }catch(e){} } }
+    else if(document.head||document.documentElement){ el=document.createElement('style'); el.id='lo-mobile-css'; el.textContent=CSS; (document.head||document.documentElement).appendChild(el); }
+    try{ if(document.getElementById('app')) build(); }catch(e){}
+  }
+  ensure(); setInterval(ensure,3000);
+  if(typeof window.addEventListener==='function') window.addEventListener('hashchange', function(){ setTimeout(ensure,90); });
+  window.LifeOSMobile={ ensure:ensure, nav:go, CSS:CSS };
+})();
+
+
+/* deploy-nonce 1782950104 */</script>
 
   <div id="__bundler_thumbnail">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
