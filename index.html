@@ -1436,6 +1436,11 @@
     var opps=(s.career&&A(s.career.opportunities))||[];
     var bcs=A(s.businessCases);
     var P=A(s.practices).length;
+    var _goals=A(s.goals), _GH=window.Goals;
+    var _prog=_goals.map(function(g){return (_GH&&_GH.progress)?(+_GH.progress(g)||0):0;});
+    var _avgP=_goals.length?Math.round(_prog.reduce(function(a,b){return a+b;},0)/_goals.length):0;
+    var _onT=_goals.filter(function(g){return _GH&&_GH.health&&/track|done/.test(_GH.health(g));}).length;
+    var _atR=_goals.filter(function(g){return _GH&&_GH.health&&/risk|behind|stall/.test(_GH.health(g));}).length;
     var common_today=[
       {l:'Open tasks', v:openTasks(s), kc:'#3b6ef6'},
       {l:'Practices', v:pracDone(s)+'/'+P, kc:'#22c074'},
@@ -1461,6 +1466,12 @@
         {l:'Business cases', v:bcs.length, kc:'#e0a458'},
         {l:'Top NPV', v:(function(){var m=0;bcs.forEach(function(b){var n=+(b.npv||(b.financials&&b.financials.npv)||0);if(n>m)m=n;});return m?fmtMoney(m):'—';})(), kc:'#22c074'},
         {l:'Pursuing', v:opps.filter(function(o){return o.verdict==='pursue';}).length, kc:'#3b6ef6'}
+      ],
+      goals: [
+        {l:'Goals', v:_goals.length, kc:'#9466ff'},
+        {l:'On track', v:_onT, kc:'#22c074'},
+        {l:'At risk', v:_atR, kc:'#ff5d6c'},
+        {l:'Avg progress', v:_avgP+'%', kc:'#3b6ef6'}
       ],
       money: [
         {l:'Net worth', v:fmtMoney(netWorth(s)), kc:'#22c074'},
