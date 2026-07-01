@@ -2173,6 +2173,248 @@
   var iv=setInterval(go,300); if(document.readyState!=='loading') go();
 })();
 
+/* ====================================================================
+   Block 39 — Accounts: a new top-level section. A comprehensive,
+   auto-aggregated registry of every open account — banking,
+   investments & retirement, credit & loans, subscriptions,
+   bills & services — pulled live from the money data, plus a
+   user-managed "Other / Digital" list. Read-first; edits live in Money.
+   ==================================================================== */
+(function(){
+  function esc(s){return (''+(s==null?'':s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function S(){ try{ return window.LifeOS.get(); }catch(e){ return {}; } }
+  function A(x){ return Array.isArray(x)?x:[]; }
+  function money(n){ if(n==null||isNaN(n))return ''; n=+n; var a=Math.abs(n); if(a>=1e6)return (n<0?'-$':'$')+(a/1e6).toFixed(2)+'M'; return (n<0?'-$':'$')+Math.round(a).toLocaleString(); }
+  function save(mut){ var s=S(); mut(s); try{ window.LifeOS.set(s); }catch(e){} render(); }
+  window.LifeOSAccounts={
+    addExtra:function(name,type){ if(!name||!name.trim())return; save(function(s){ s.accountsExtra=s.accountsExtra||[]; s.accountsExtra.push({name:name.trim(),type:(type||'').trim()||'Account'}); }); },
+    delExtra:function(i){ save(function(s){ if(s.accountsExtra) s.accountsExtra.splice(i,1); }); }
+  };
+  function groups(){
+    var s=S(); var acc=A(s.accounts), subs=A(s.subscriptions), debts=A(s.money&&s.money.debts), inv=A(s.investments), bills=A(s.money&&s.money.bills), ex=A(s.accountsExtra);
+    var banking=acc.filter(function(a){return /check|saving|cash|money/i.test(a.type||'');}).map(function(a){return {name:a.name,sub:a.institution,val:money(a.balance)};});
+    var investR=inv.map(function(a){return {name:a.name,sub:(a.type||'investment'),val:money(a.value)};})
+      .concat(acc.filter(function(a){return /brokerage|retire|401|ira|hsa|roth|invest/i.test(a.type||'');}).map(function(a){return {name:a.name,sub:a.institution,val:money(a.balance)};}));
+    var credit=debts.map(function(d){return {name:d.n,sub:(d.t||'debt')+(d.r?(' · '+d.r+'%'):''),val:money(d.b),neg:true};});
+    var subsG=subs.map(function(x){return {name:x.name,sub:x.category||'Subscription',val:money(x.amount)+'/'+((x.cycle||'monthly')==='yearly'?'yr':'mo')};});
+    var billsG=bills.map(function(b){return {name:b.n,sub:b.e||b.c||'Service',val:money(b.a)+'/mo'};});
+    var otherG=ex.map(function(x,i){return {name:x.name,sub:x.type||'Account',val:'',del:i};});
+    return [
+      {cat:'Banking', c:'#22c074', items:banking},
+      {cat:'Investments & Retirement', c:'#3b6ef6', items:investR},
+      {cat:'Credit & Loans', c:'#ff5d6c', items:credit},
+      {cat:'Subscriptions', c:'#9466ff', items:subsG},
+      {cat:'Bills & Services', c:'#e0a458', items:billsG},
+      {cat:'Other / Digital', c:'#0e8aa6', items:otherG, addable:true}
+    ];
+  }
+  function css(){
+    if(document.getElementById('lo-acc-css')||!document.head||!document.getElementById('app'))return;
+    document.head.insertAdjacentHTML('beforeend','<style id="lo-acc-css">'
+      +'#lo-accounts-view .acc-head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px}'
+      +'#lo-accounts-view h1{font-size:22px;font-weight:800;margin:0}'
+      +'#lo-accounts-view .acc-tot{font-family:var(--mono);font-size:12px;font-weight:800;color:var(--accent);background:color-mix(in srgb,var(--accent) 15%,transparent);border-radius:999px;padding:2px 10px}'
+      +'#lo-accounts-view .acc-sub{color:var(--fg-3);font-size:13px;margin:2px 0 18px}'
+      +'#lo-accounts-view .acc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px;align-items:start}'
+      +'#lo-accounts-view .acc-cat{border:1px solid var(--line-1);border-top:3px solid var(--c);border-radius:var(--r-md,13px);background:var(--bg-2);box-shadow:var(--e-1);padding:14px 15px}'
+      +'#lo-accounts-view .acc-cat-h{font-family:var(--mono);font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--c);display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}'
+      +'#lo-accounts-view .acc-cat-h span{color:var(--fg-4);background:color-mix(in srgb,var(--c) 13%,transparent);border-radius:999px;padding:1px 8px}'
+      +'#lo-accounts-view .acc-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid color-mix(in srgb,var(--fg-1) 6%,transparent)}'
+      +'#lo-accounts-view .acc-row:last-child{border-bottom:none}'
+      +'#lo-accounts-view .acc-nm{font-size:13.5px;font-weight:600;color:var(--fg-1)}'
+      +'#lo-accounts-view .acc-in{font-family:var(--mono);font-size:10px;color:var(--fg-4);text-transform:uppercase;letter-spacing:.03em;margin-top:1px}'
+      +'#lo-accounts-view .acc-val{font-family:var(--display);font-weight:800;font-size:14px;color:var(--fg-1);white-space:nowrap}'
+      +'#lo-accounts-view .acc-val.neg{color:var(--bad)}'
+      +'#lo-accounts-view .acc-x{opacity:0;border:none;background:none;color:var(--fg-4);cursor:pointer;font-size:15px}'
+      +'#lo-accounts-view .acc-row:hover .acc-x{opacity:1}#lo-accounts-view .acc-x:hover{color:var(--bad)}'
+      +'#lo-accounts-view .acc-add{width:100%;margin-top:9px;border:1px dashed var(--line-2);border-radius:8px;background:var(--bg-1);padding:6px 9px;font-size:12px;color:var(--fg-1);outline:none}'
+      +'#lo-accounts-view .acc-add:focus{border-color:var(--c);border-style:solid}'
+      +'#lo-accounts-view .acc-empty{color:var(--fg-4);font-size:12px;padding:4px 0}'
+      +'</style>');
+  }
+  function ensureSection(){ var main=document.getElementById('main'); if(!main)return null; var v=document.getElementById('lo-accounts-view'); if(!v){ v=document.createElement('section'); v.id='lo-accounts-view'; v.className='view'; main.appendChild(v);
+      v.addEventListener('click',function(e){ var x=e.target.closest?e.target.closest('.acc-x'):null; if(x){ window.LifeOSAccounts.delExtra(+x.getAttribute('data-del')); } });
+      v.addEventListener('keydown',function(e){ if(e.key==='Enter'){ var a=e.target.closest?e.target.closest('.acc-add'):null; if(a){ window.LifeOSAccounts.addExtra(a.value,''); } } });
+    } return v; }
+  function render(){ css(); var v=document.getElementById('lo-accounts-view'); if(!v||!v.classList.contains('on'))return;
+    var g=groups(); var total=g.reduce(function(a,c){return a+c.items.length;},0);
+    v.innerHTML='<div class="acc-head"><div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-4)">LifeOS · Registry</div></div>'
+      +'<div class="acc-head"><h1>Accounts</h1><span class="acc-tot">'+total+' open</span></div>'
+      +'<p class="acc-sub">Every open account in one place — banking, investments, credit, subscriptions, and services. Financial details are managed in Money.</p>'
+      +'<div class="acc-grid">'+g.map(function(cat){
+        return '<div class="acc-cat" style="--c:'+cat.c+'"><div class="acc-cat-h">'+esc(cat.cat)+' <span>'+cat.items.length+'</span></div>'
+          +(cat.items.length?cat.items.map(function(it){ return '<div class="acc-row"><div><div class="acc-nm">'+esc(it.name)+'</div>'+(it.sub?'<div class="acc-in">'+esc(it.sub)+'</div>':'')+'</div>'+(it.val?'<div class="acc-val'+(it.neg?' neg':'')+'">'+esc(it.val)+'</div>':(it.del!=null?'<button class="acc-x" data-del="'+it.del+'">×</button>':''))+'</div>'; }).join(''):'<div class="acc-empty">None yet.</div>')
+          +(cat.addable?'<input class="acc-add" placeholder="+ add an account (e.g. GitHub, iCloud)…">':'')+'</div>';
+      }).join('')+'</div>';
+  }
+  window.LifeOSAccounts.render=render;
+  window.LifeOSAccounts.show=function(){ var v=ensureSection(); if(!v)return; try{var _n=document.getElementById("tb-name"); if(_n)_n.textContent="Accounts";}catch(e){} document.querySelectorAll('#main .view').forEach(function(s){ if(s!==v) s.classList.remove('on'); }); v.classList.add('on'); document.querySelectorAll('#rail .navbtn').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-view')==='accounts'); }); render(); };
+  function injectNav(){ if(document.querySelector('.navbtn[data-view="accounts"]'))return true; var anchor=document.querySelector('.navbtn[data-view="goals"]')||document.querySelector('.navbtn[data-view="money"]'); if(!anchor)return false;
+    var b=document.createElement('button'); b.className='navbtn'; b.setAttribute('data-view','accounts'); b.setAttribute('style','--c:#22c074'); b.textContent='Accounts';
+    anchor.parentNode.insertBefore(b, anchor.nextSibling);
+    b.addEventListener('click',function(ev){ ev.stopImmediatePropagation(); ev.preventDefault(); window.LifeOSAccounts.show(); },true); return true; }
+  function hideOnOther(){ if(window.__accHook)return; window.__accHook=true;
+    document.addEventListener('click',function(ev){ var nb=ev.target.closest?ev.target.closest('.navbtn[data-view]'):null; if(nb&&nb.getAttribute('data-view')!=='accounts'){ var v=document.getElementById('lo-accounts-view'); if(v)v.classList.remove('on'); } },true);
+    if(typeof window.addEventListener==='function') window.addEventListener('hashchange',function(){ if(location.hash==='#/accounts') window.LifeOSAccounts.show(); }); }
+  function go(){ if(!(document.getElementById('rail')&&window.LifeOS))return false; css(); injectNav(); hideOnOther(); if(location.hash==='#/accounts') setTimeout(function(){ window.LifeOSAccounts.show(); },250); return false; }
+  var iv=setInterval(go,120); setTimeout(function(){ clearInterval(iv); },30000);
+  if(document.readyState!=='loading') go();
+})();
+
+/* ====================================================================
+   Block 40 — Assets: a new sub-section under Money. Groups every asset
+   (real estate, vehicles, investments, cash) with values + total,
+   pulled from the real money data.
+   ==================================================================== */
+(function(){
+  function esc(s){return (''+(s==null?'':s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function S(){ try{ return window.LifeOS.get(); }catch(e){ return {}; } }
+  function A(x){ return Array.isArray(x)?x:[]; }
+  function money(n){ if(n==null||isNaN(n))return ''; n=+n; var a=Math.abs(n); if(a>=1e6)return '$'+(a/1e6).toFixed(2)+'M'; return '$'+Math.round(a).toLocaleString(); }
+  function css(){
+    if(document.getElementById('lo-assets-css')||!document.head||!document.getElementById('app'))return;
+    document.head.insertAdjacentHTML('beforeend','<style id="lo-assets-css">'
+      +'#lo-assets{margin-top:26px;padding-top:22px;border-top:1px solid var(--line-1)}'
+      +'#lo-assets .as-h{display:flex;align-items:baseline;gap:12px;margin:0 0 3px}'
+      +'#lo-assets .as-h h2{font-size:19px;font-weight:800;margin:0}'
+      +'#lo-assets .as-tot{font-family:var(--display);font-size:18px;font-weight:800;color:var(--good)}'
+      +'#lo-assets .as-sub{color:var(--fg-3);font-size:13px;margin:2px 0 15px}'
+      +'#lo-assets .as-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:13px;align-items:start}'
+      +'#lo-assets .as-cat{border:1px solid var(--line-1);border-left:3px solid var(--c);border-radius:var(--r-md,13px);background:var(--bg-2);box-shadow:var(--e-1);padding:14px 15px}'
+      +'#lo-assets .as-cat-h{font-family:var(--mono);font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--c);display:flex;justify-content:space-between;margin-bottom:10px}'
+      +'#lo-assets .as-row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid color-mix(in srgb,var(--fg-1) 6%,transparent);font-size:13.5px}'
+      +'#lo-assets .as-row:last-child{border-bottom:none}#lo-assets .as-row b{font-weight:600;color:var(--fg-1)}'
+      +'#lo-assets .as-row .v{font-family:var(--display);font-weight:800;color:var(--fg-1);white-space:nowrap}'
+      +'#lo-assets .as-row .o{font-family:var(--mono);font-size:9px;color:var(--fg-4);text-transform:uppercase}'
+      +'</style>');
+  }
+  var PAL={ 'Real Estate':'#22c074','Property':'#22c074','Vehicle':'#3b6ef6','Investments':'#9466ff','Cash':'#0e8aa6','Other':'#e0a458' };
+  function activeMoney(){ if((location.hash||'').indexOf('money')>-1)return true; var nb=document.querySelector('.navbtn[data-view="money"]'); return !!(nb&&nb.classList.contains('on')); }
+  function render(){ css(); if(!activeMoney())return; var host=document.querySelector('#main .view.on'); if(!host)return;
+    var s=S(); var assets=A(s.money&&s.money.assets), inv=A(s.investments), acc=A(s.accounts);
+    var groups={};
+    function push(cat,name,val,owner){ groups[cat]=groups[cat]||[]; groups[cat].push({name:name,val:val,owner:owner}); }
+    assets.forEach(function(a){ var t=a.t||'Other'; var cat=/propert|real|home|house|land/i.test(t)?'Real Estate':(/vehicle|car|auto/i.test(t)?'Vehicle':(/cash/i.test(t)?'Cash':(/invest|stock|fund|equity|retire/i.test(t)?'Investments':'Other'))); push(cat, a.n||a.name||t, +a.v||0, a.o); });
+    inv.forEach(function(i){ push('Investments', i.name, +i.value||0, null); });
+    acc.filter(function(a){return /check|saving|cash|money/i.test(a.type||'');}).forEach(function(a){ push('Cash', (a.name||'')+(a.institution?(' · '+a.institution):''), +a.balance||0, null); });
+    var order=['Real Estate','Vehicle','Investments','Cash','Other'];
+    var total=Object.keys(groups).reduce(function(t,k){return t+groups[k].reduce(function(a,x){return a+x.val;},0);},0);
+    var inner='<div class="as-h"><h2>Assets</h2><span class="as-tot">'+money(total)+'</span></div>'
+      +'<p class="as-sub">Everything I own of value — property, vehicles, investments and cash.</p>'
+      +'<div class="as-grid">'+order.filter(function(k){return groups[k]&&groups[k].length;}).map(function(k){ var col=PAL[k]||'#e0a458'; var sub=groups[k].reduce(function(a,x){return a+x.val;},0);
+        return '<div class="as-cat" style="--c:'+col+'"><div class="as-cat-h">'+esc(k)+' <span>'+money(sub)+'</span></div>'
+          +groups[k].map(function(x){ return '<div class="as-row"><div><b>'+esc(x.name)+'</b>'+(x.owner?' <span class="o">'+esc(x.owner)+'</span>':'')+'</div><span class="v">'+money(x.val)+'</span></div>'; }).join('')+'</div>';
+      }).join('')+'</div>';
+    var wrap=document.getElementById('lo-assets');
+    if(!wrap||wrap.parentNode!==host){ if(wrap)wrap.remove(); wrap=document.createElement('div'); wrap.id='lo-assets'; host.appendChild(wrap); }
+    if(wrap.getAttribute('data-sig')!==inner){ wrap.setAttribute('data-sig',inner); wrap.innerHTML=inner; }
+  }
+  window.LifeOSAssets={ render:render };
+  function go(){ if(!(document.getElementById('app')&&window.LifeOS))return false;
+    if(!window.__assetsWrap && window.MoneyEngine && typeof MoneyEngine.render==='function'){ window.__assetsWrap=true; var base=MoneyEngine.render.bind(MoneyEngine); MoneyEngine.render=function(){ var r=base.apply(this,arguments); try{ setTimeout(render,0); }catch(e){} return r; }; }
+    render(); return false; }
+  var iv=setInterval(go,300); if(document.readyState!=='loading') go();
+})();
+
+/* ====================================================================
+   Block 41 — Money module cleanup (tab bar).
+   • Hide: Retirement (embedded into Investments), Debt, Payoff plan,
+     Tax, Indicators, Forecast, Tasks.
+   • Rename: Bills → Bill Tracker.
+   • Add: Cash Flow (wired to the existing MoneyEngine cashflow view).
+   Persistent (the tab bar re-renders), so it sticks across navigation.
+   ==================================================================== */
+(function(){
+  var HIDE=["Retirement","Debt","Payoff plan","Payoff Plan","Tax","Indicators","Forecast","Tasks"];
+  function activeMoney(){ if((location.hash||'').indexOf('money')>-1) return true; var n=document.querySelector('.navbtn[data-view="money"]'); return !!(n&&n.classList.contains('on')); }
+  function clean(){
+    if(!activeMoney()) return;
+    var bar=document.getElementById('tb-tabs'); if(!bar) return;
+    var btns=[].slice.call(bar.querySelectorAll('button, .tb-tab'));
+    btns.forEach(function(b){
+      var t=(b.getAttribute('data-lo-orig')||b.textContent).trim();
+      if(HIDE.indexOf(t)>=0){ b.style.display='none'; return; }
+      if(t==="Bills"){ if(!b.getAttribute('data-lo-orig')) b.setAttribute('data-lo-orig','Bills'); if(b.textContent.trim()!=="Bill Tracker") b.textContent="Bill Tracker"; }
+    });
+    if(!bar.querySelector('[data-lo-cashflow]')){
+      var anchor=btns.filter(function(b){return /Bill Tracker|Transactions|Budget/.test(b.textContent);})[0]||btns[0];
+      var nb=document.createElement("button"); nb.className=(anchor?anchor.className:"tb-tab"); nb.setAttribute("data-lo-cashflow","1"); nb.textContent="Cash Flow";
+      nb.onclick=function(){ try{ if(window.MoneyEngine){ if(MoneyEngine.setTab) MoneyEngine.setTab("cashflow"); else MoneyEngine.tab="cashflow"; if(MoneyEngine.render) MoneyEngine.render(); if(window.renderTopTabs) renderTopTabs("money"); setTimeout(clean,0); } }catch(e){} };
+      if(anchor&&anchor.parentNode) anchor.parentNode.insertBefore(nb, anchor.nextSibling); else bar.appendChild(nb);
+    }
+    // if the active tab was one we hid, fall back to Overview
+    try{ if(window.MoneyEngine && HIDE.map(function(x){return x.toLowerCase().replace(/ /g,'');}).indexOf((MoneyEngine.tab||'').toLowerCase())>=0){ MoneyEngine.setTab&&MoneyEngine.setTab('overview'); } }catch(e){}
+  }
+  window.LifeOSMoney={ clean:clean, HIDE:HIDE };
+  if(!window.__moneyTabsWrap && typeof window!=='undefined'){ window.__moneyTabsWrap=true;
+    var wrapRTT=function(){ if(typeof window.renderTopTabs==='function' && !window.renderTopTabs.__moneyClean){ var base=window.renderTopTabs; window.renderTopTabs=function(v){ var r=base.apply(this,arguments); try{ if(v==='money'||activeMoney()) setTimeout(clean,0); }catch(e){} return r; }; try{Object.keys(base).forEach(function(k){window.renderTopTabs[k]=base[k];});}catch(e){} window.renderTopTabs.__moneyClean=true; } };
+    wrapRTT();
+  }
+  var iv=setInterval(function(){ if(typeof window.renderTopTabs==='function' && !window.renderTopTabs.__moneyClean){ var base=window.renderTopTabs; window.renderTopTabs=function(v){ var r=base.apply(this,arguments); try{ if(v==='money'||activeMoney()) setTimeout(clean,0); }catch(e){} return r; }; try{Object.keys(base).forEach(function(k){window.renderTopTabs[k]=base[k];});}catch(e){} window.renderTopTabs.__moneyClean=true; } clean(); },500);
+  if(document.readyState!=='loading') clean();
+})();
+
+/* ====================================================================
+   Block 42 — "LifeOS <Section>" hero lockup in the top-left banner.
+   The banner is:  <.tb-brand><.nm>Life<em>OS</em></.nm>  |  <.tb-section> › ● <#tb-name>
+   We merge the section name INTO the wordmark lockup so it reads as one
+   bold, cohesive title next to the LifeOS icon — e.g. "LifeOS Ops Board".
+   • drop the › separator + status dot
+   • size the section name up to the wordmark's scale, bold, gradient fill
+   • per-theme gradient (Palmwave = the exact OPS BOARD lime→pink)
+   • rename the Tasks section to "Ops Board"; same treatment in every section
+   ==================================================================== */
+(function(){
+  var NAME_OVERRIDE={ tasks:"Ops Board" };            // section id -> display title
+  var CUSTOM={ accounts:"Accounts", boundaries:"Boundaries" };
+
+  if(!document.getElementById("lo-herolockup-css")){
+    var css=document.createElement("style"); css.id="lo-herolockup-css";
+    css.textContent=[
+      /* let the wordmark column size to its content so the title sits right after it */
+      '#topbar{ grid-template-columns:auto auto 1fr auto !important; }',
+      '#topbar .tb-brand{ width:auto !important; padding-right:0 !important; }',
+      '#topbar .tb-brand .nm{ font-family:"Space Grotesk",var(--display,inherit); }',
+      /* the section lockup butts up against the wordmark like one title */
+      '#topbar .tb-section{ padding:0 16px 0 11px !important; gap:0 !important; }',
+      '#topbar .tb-section .sep, #topbar .tb-section .sdot{ display:none !important; }',
+      /* THE hero section title — an extension of the LifeOS wordmark */
+      '#topbar .tb-section .sname, #topbar .tb-section #tb-name{',
+      '  font-family:"Space Grotesk",var(--display,inherit);',
+      '  font-size:27px; font-weight:800; letter-spacing:-.02em; line-height:1; text-transform:none;',
+      '  background:var(--hero-grad, linear-gradient(92deg,var(--accent),var(--accent-h)));',
+      '  -webkit-background-clip:text; background-clip:text;',
+      '  -webkit-text-fill-color:transparent !important; color:transparent !important;',
+      '}',
+      /* exact per-theme two-tone gradients (data-theme is set for custom themes too) */
+      '[data-theme="palmwave"] #topbar .tb-section .sname{ background:linear-gradient(92deg,#d4ff3a,#ff2ec7); }',
+      '[data-theme="bloom"] #topbar .tb-section .sname{ background:linear-gradient(92deg,#ef1a6b,#08a4b0); }',
+      '[data-theme="lagoon"] #topbar .tb-section .sname{ background:linear-gradient(92deg,#12909b,#e8912a); }'
+    ].join("\n");
+    (document.head||document.documentElement).appendChild(css);
+  }
+
+  function curView(){
+    var h=(location.hash||"").replace(/^#\/?/,"").split("?")[0].split("/")[0];
+    if(h) return h;
+    var b=document.querySelector('.navbtn.on[data-view]'); return b?b.getAttribute("data-view"):"";
+  }
+  function setName(txt){ var n=document.getElementById("tb-name"); if(n && txt && n.textContent!==txt) n.textContent=txt; }
+  function paint(){
+    var v=curView(); if(!v) return;
+    if(CUSTOM[v]) return setName(CUSTOM[v]);      // custom sections app doesn't know
+    if(NAME_OVERRIDE[v]) return setName(NAME_OVERRIDE[v]); // e.g. tasks -> Ops Board
+    /* other sections: app's updateTopBar already sets the right name; leave it */
+  }
+  setInterval(paint,400);
+  document.addEventListener("click",function(e){
+    var b=e.target && e.target.closest && e.target.closest('.navbtn[data-view]'); if(!b) return;
+    setTimeout(paint,30);
+  },true);
+  if(document.readyState!=="loading") paint();
+  window.LifeOSSectionHdr={ setName:setName, CUSTOM:CUSTOM, NAME_OVERRIDE:NAME_OVERRIDE, curView:curView };
+})();
+
 </script>
 
   <div id="__bundler_thumbnail">
