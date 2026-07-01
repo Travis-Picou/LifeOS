@@ -1366,15 +1366,7 @@
   window.LifeOSOpps={
     tab:"roles",
     setTab:function(t){ this.tab=t; this.render(); },
-    show:function(){
-      try{
-        document.querySelectorAll(".view").forEach(function(x){ x.classList.toggle("on", x.id==="view-surface"); });
-        document.querySelectorAll(".navbtn").forEach(function(b){ b.classList.toggle("on", b.dataset.view==="opportunities"); });
-        try{ location.hash="/opportunities"; }catch(e){}
-        var r=document.getElementById("rail"); if(r)r.classList.remove("open");
-      }catch(e){}
-      this.render();
-    },
+    show:function(){ try{ if(window.UI&&UI.go) UI.go('career'); }catch(e){} },
     openCase:function(id){
       var bc=(st().businessCases||[]).find(function(x){return x.id===id;}); if(!bc)return; var m=bc.metrics||{}; var v=bc.value||{};
       function row(k,val){ return '<span class="ls-k">'+E(k)+'</span><span class="ls-v">'+val+'</span>'; }
@@ -1414,11 +1406,7 @@
     }
   };
   function injectNav(){
-    if(document.querySelector('.navbtn[data-view="opportunities"]')) return true;
-    var career=document.querySelector('.navbtn[data-view="career"]'); if(!career) return false;
-    var b=document.createElement("button"); b.className="navbtn"; b.setAttribute("data-view","opportunities"); b.setAttribute("style","--c:#6048d6"); b.textContent="Opportunities";
-    career.parentNode.insertBefore(b, career);
-    b.addEventListener("click", function(ev){ ev.stopImmediatePropagation(); ev.preventDefault(); window.LifeOSOpps.show(); }, true);
+    var ex=document.querySelector('.navbtn[data-view="opportunities"]'); if(ex) ex.remove();
     return true;
   }
   function css(){ if(document.getElementById("opps-css")||!document.head) return; document.head.insertAdjacentHTML("beforeend",'<style id="opps-css">'
@@ -2109,6 +2097,80 @@
   window.LifeOSBoard={ recss:function(){ var e=document.getElementById('lo-board-css'); if(e)e.remove(); css(); } };
   var iv=setInterval(go,120); setTimeout(function(){ clearInterval(iv); },30000);
   if(document.readyState!=='loading') go();
+})();
+
+/* ====================================================================
+   Block 38 — Boundaries: a new sub-section under Identity.
+   Categorized boundaries (Safety, Physiological, Love & Belonging,
+   Esteem, Self-Actualization, Workplace, Intellectual, Material &
+   Financial, Time, Emotional, Health), seeded from the owner's
+   Boundaries doc. Add / remove per category; persists to account.
+   ==================================================================== */
+(function(){
+  function esc(s){return (''+(s==null?'':s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  var BSEED=[
+    {cat:"Safety", items:["Do not exceed 10 mph over the speed limit","Maintain a relationship with a Primary Care Physician","Maintain a relationship with a Dentist"]},
+    {cat:"Physiological", items:["3 healthy meals a day","6 glasses of water a day","7–8 hours of sleep a day","Ensure housing security","Exercise"]},
+    {cat:"Love & Belonging", items:["Don't try to help others with problems I'm not equipped to solve","Call my mom once a week","Remain physically and emotionally faithful to my partner","Do not tolerate people being disrespectful to me"]},
+    {cat:"Esteem", items:["Practice self-compassion","Adhere to financial plans","Prioritize exercise","Don't sweat the small stuff","Know my why — don't attach my identity to anything else","Minimize self-deprecating thoughts"]},
+    {cat:"Self-Actualization", items:["Give yourself time to reflect","Don't judge the moment"]},
+    {cat:"Workplace", items:["Create an environment where I can do my best work","Limit work outside of work hours","Give myself space to be me"]},
+    {cat:"Intellectual", items:["Put integrity first","Limit exposure and investment in false information"]},
+    {cat:"Material & Financial", items:["Don't spend money I don't have","Meet financial obligations","Adhere to financial plans & budgets","Ensure housing security","Ensure financial security","Minimize waste"]},
+    {cat:"Time", items:["Breakfast, lunch & dinner","Meditation","7–8 hours of sleep","Cleaning & house chores","Friends & family connection","Intimacy & connection","Doctor's & dentist appointments","8 hours of work / day","Entertainment","Vacations","Planning","Nature walks","Guitar","Introspection — reflect, learn & grow","Workout","Goal setting & tracking","Sports","Shows","Sick days","Home projects"]},
+    {cat:"Emotional", items:["Give my heart what it needs","Limit emotions tied to events out of my control","Ignore the noise","PAUSE when stuck in catastrophic looping","Remember my worth","Stay humble — never let a win go to my head or a loss to my heart","Don't sweat the small stuff; it's all small stuff","Business is business","Manage my attachments","Cure your ignorance — outline visible & stealth expectations","Call your mom"]},
+    {cat:"Health", items:["Give my body & mind what they need","Develop awareness of nutritional needs","Ensure housing security"]}
+  ];
+  var PAL=["#3b6ef6","#22c074","#9466ff","#e0a458","#0e8aa6","#ff5d6c","#6d4bd6","#14b8a6","#e08a1e","#8a5cf6","#0ea5a5"];
+  function seed(){ try{ var s=window.LifeOS.get(); s.identity=s.identity||{}; if(!Array.isArray(s.identity.boundaries)||!s.identity.boundaries.length){ s.identity.boundaries=JSON.parse(JSON.stringify(BSEED)); window.LifeOS.set(s); } }catch(e){} }
+  function data(){ try{ var s=window.LifeOS.get(); return (s.identity&&s.identity.boundaries)||[]; }catch(e){ return []; } }
+  function save(mut){ try{ var s=window.LifeOS.get(); s.identity=s.identity||{}; s.identity.boundaries=s.identity.boundaries||[]; mut(s.identity.boundaries); window.LifeOS.set(s); }catch(e){} render(); }
+  window.LifeOSBoundaries={ seed:seed, data:data, BSEED:BSEED,
+    add:function(ci,t){ if(!t||!t.trim())return; save(function(B){ if(B[ci]){ B[ci].items=B[ci].items||[]; B[ci].items.push(t.trim()); } }); },
+    del:function(ci,ii){ save(function(B){ if(B[ci]&&B[ci].items) B[ci].items.splice(ii,1); }); } };
+  function css(){
+    if(document.getElementById('lo-bnd-css')||!document.head||!document.getElementById('app'))return;
+    document.head.insertAdjacentHTML('beforeend','<style id="lo-bnd-css">'
+      +'#lo-boundaries{margin-top:26px;padding-top:22px;border-top:1px solid var(--line-1)}'
+      +'#lo-boundaries .bnd-title{font-size:19px;font-weight:800;display:flex;align-items:center;gap:10px;margin:0}'
+      +'#lo-boundaries .bnd-tot{font-family:var(--mono);font-size:12px;font-weight:800;color:var(--accent);background:color-mix(in srgb,var(--accent) 15%,transparent);border-radius:999px;padding:2px 9px}'
+      +'#lo-boundaries .bnd-sub{color:var(--fg-3);font-size:13px;margin:5px 0 16px}'
+      +'#lo-boundaries .bnd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:13px;align-items:start}'
+      +'#lo-boundaries .bnd-cat{border:1px solid var(--line-1);border-left:3px solid var(--c);border-radius:var(--r-md,13px);background:var(--bg-2);box-shadow:var(--e-1);padding:14px 15px}'
+      +'#lo-boundaries .bnd-cat-h{font-family:var(--mono);font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--c);display:flex;align-items:center;gap:8px;margin-bottom:10px}'
+      +'#lo-boundaries .bnd-cat-h span{color:var(--fg-4);background:color-mix(in srgb,var(--c) 13%,transparent);border-radius:999px;padding:1px 7px}'
+      +'#lo-boundaries .bnd-item{display:flex;align-items:flex-start;gap:8px;justify-content:space-between;font-size:13px;color:var(--fg-1);padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--fg-1) 6%,transparent)}'
+      +'#lo-boundaries .bnd-item:last-of-type{border-bottom:none}'
+      +'#lo-boundaries .bnd-item .bnd-x{opacity:0;border:none;background:none;color:var(--fg-4);cursor:pointer;font-size:15px;line-height:1;flex:none}'
+      +'#lo-boundaries .bnd-item:hover .bnd-x{opacity:1}#lo-boundaries .bnd-item .bnd-x:hover{color:var(--bad)}'
+      +'#lo-boundaries .bnd-add{width:100%;margin-top:9px;border:1px dashed var(--line-2);border-radius:8px;background:var(--bg-1);padding:6px 9px;font-size:12px;color:var(--fg-1);outline:none}'
+      +'#lo-boundaries .bnd-add:focus{border-color:var(--c);border-style:solid}'
+      +'</style>');
+  }
+  function activeIdentity(){ if((location.hash||'').indexOf('identity')>-1) return true; var nb=document.querySelector('.navbtn[data-view="identity"]'); return !!(nb&&nb.classList.contains('on')); }
+  function render(){
+    css(); if(!activeIdentity()) return;
+    var host=document.querySelector('#main .view.on'); if(!host) return; seed();
+    var cats=data(); var total=cats.reduce(function(a,c){return a+((c.items||[]).length);},0);
+    var inner='<h2 class="bnd-title">Boundaries <span class="bnd-tot">'+total+'</span></h2>'
+      +'<p class="bnd-sub">The lines I hold to protect my needs — across every layer of life.</p>'
+      +'<div class="bnd-grid">'+cats.map(function(c,ci){ var col=PAL[ci%PAL.length];
+        return '<div class="bnd-cat" style="--c:'+col+'"><div class="bnd-cat-h">'+esc(c.cat)+' <span>'+((c.items||[]).length)+'</span></div>'
+          +'<div class="bnd-items">'+(c.items||[]).map(function(it,ii){ return '<div class="bnd-item"><span>'+esc(it)+'</span><button class="bnd-x" data-del="'+ci+'|'+ii+'" title="Remove">×</button></div>'; }).join('')+'</div>'
+          +'<input class="bnd-add" data-add="'+ci+'" placeholder="+ add boundary…"></div>';
+      }).join('')+'</div>';
+    var wrap=document.getElementById('lo-boundaries');
+    if(!wrap || wrap.parentNode!==host){ if(wrap) wrap.remove(); wrap=document.createElement('div'); wrap.id='lo-boundaries'; host.appendChild(wrap);
+      wrap.addEventListener('click', function(e){ var x=e.target.closest?e.target.closest('.bnd-x'):null; if(x){ var p=x.getAttribute('data-del').split('|'); window.LifeOSBoundaries.del(+p[0],+p[1]); } });
+      wrap.addEventListener('keydown', function(e){ if(e.key==='Enter'){ var a=e.target.closest?e.target.closest('.bnd-add'):null; if(a){ window.LifeOSBoundaries.add(+a.getAttribute('data-add'), a.value); } } });
+    }
+    if(wrap.getAttribute('data-sig')!==inner){ wrap.setAttribute('data-sig',inner); wrap.innerHTML=inner; }
+  }
+  window.LifeOSBoundaries.render=render;
+  function go(){ if(!(document.getElementById('app')&&window.LifeOS))return false;
+    if(!window.__bndWrap && window.IdentityEngine && typeof IdentityEngine.render==='function'){ window.__bndWrap=true; var base=IdentityEngine.render.bind(IdentityEngine); IdentityEngine.render=function(){ var r=base.apply(this,arguments); try{ setTimeout(render,0); }catch(e){} return r; }; }
+    render(); return false; }
+  var iv=setInterval(go,300); if(document.readyState!=='loading') go();
 })();
 
 </script>
