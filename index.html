@@ -1409,6 +1409,9 @@
     var ex=document.querySelector('.navbtn[data-view="opportunities"]'); if(ex) ex.remove();
     return true;
   }
+  function allAccounts(){ var out=[]; groups().forEach(function(cat){ cat.items.forEach(function(it){ out.push({name:it.name, cat:cat.cat, del:it.del}); }); }); return out; }
+  function creds(){ var s=S(); return s.accountsCreds||{}; }
+  function setCred(name,field,val){ var s=S(); s.accountsCreds=s.accountsCreds||{}; s.accountsCreds[name]=s.accountsCreds[name]||{user:"",pass:""}; s.accountsCreds[name][field]=val; try{ window.LifeOS.set(s); }catch(e){} }
   function css(){ if(document.getElementById("opps-css")||!document.head) return; document.head.insertAdjacentHTML("beforeend",'<style id="opps-css">'
     +'.opp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}@media(max-width:780px){.opp-grid{grid-template-columns:1fr}}'
     +'.bc-card{border:1px solid var(--line-1);border-left:3px solid var(--c);border-radius:14px;background:var(--bg-2);box-shadow:var(--e-1);padding:15px 16px;cursor:pointer;transition:transform .14s,box-shadow .14s}.bc-card:hover{transform:translateY(-2px);box-shadow:var(--e-2)}'
@@ -2230,22 +2233,43 @@
       +'#lo-accounts-view .acc-add{width:100%;margin-top:9px;border:1px dashed var(--line-2);border-radius:8px;background:var(--bg-1);padding:6px 9px;font-size:12px;color:var(--fg-1);outline:none}'
       +'#lo-accounts-view .acc-add:focus{border-color:var(--c);border-style:solid}'
       +'#lo-accounts-view .acc-empty{color:var(--fg-4);font-size:12px;padding:4px 0}'
+      +'#lo-accounts-view .acc-tbl{width:100%;border-collapse:collapse;margin-top:6px;table-layout:fixed}'
+      +'#lo-accounts-view .acc-tbl th{text-align:left;font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-4);padding:6px 10px;border-bottom:1px solid var(--line-1)}'
+      +'#lo-accounts-view .acc-tbl td{padding:6px 10px;border-bottom:1px solid color-mix(in srgb,var(--fg-1) 6%,transparent);vertical-align:middle}'
+      +'#lo-accounts-view .acc-tbl tr:hover td{background:color-mix(in srgb,var(--fg-1) 3%,transparent)}'
+      +'#lo-accounts-view .acc-tbl th:nth-child(1),#lo-accounts-view .acc-tbl td:nth-child(1){width:30%}'
+      +'#lo-accounts-view .acc-tbl th:nth-child(2),#lo-accounts-view .acc-tbl td:nth-child(2){width:30%}'
+      +'#lo-accounts-view .acc-tbl th:nth-child(4),#lo-accounts-view .acc-tbl td:nth-child(4){width:34px;text-align:center}'
+      +'#lo-accounts-view .acc-cred{width:100%;background:var(--bg-1);border:1px solid var(--line-1);border-radius:7px;padding:5px 8px;font-size:12.5px;color:var(--fg-1);font-family:var(--mono);outline:none}'
+      +'#lo-accounts-view .acc-cred:focus{border-color:var(--accent)}'
+      +'#lo-accounts-view .acc-pw{display:flex;gap:6px;align-items:center}'
+      +'#lo-accounts-view .acc-eye{flex:none;border:1px solid var(--line-2);background:var(--bg-1);border-radius:6px;padding:4px 8px;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--fg-3);cursor:pointer}'
+      +'#lo-accounts-view .acc-eye:hover{color:var(--accent);border-color:var(--accent)}'
+      +'#lo-accounts-view .acc-note{color:var(--fg-4);font-size:11px;margin-top:12px;line-height:1.5}'
       +'</style>');
   }
   function ensureSection(){ var main=document.getElementById('main'); if(!main)return null; var v=document.getElementById('lo-accounts-view'); if(!v){ v=document.createElement('section'); v.id='lo-accounts-view'; v.className='view'; main.appendChild(v);
-      v.addEventListener('click',function(e){ var x=e.target.closest?e.target.closest('.acc-x'):null; if(x){ window.LifeOSAccounts.delExtra(+x.getAttribute('data-del')); } });
+      v.addEventListener('click',function(e){ var x=e.target.closest?e.target.closest('.acc-x'):null; if(x){ window.LifeOSAccounts.delExtra(+x.getAttribute('data-del')); return; } var eye=e.target.closest?e.target.closest('.acc-eye'):null; if(eye){ var inp=eye.parentNode.querySelector('.acc-pass'); if(inp){ var showing=inp.type==='text'; inp.type=showing?'password':'text'; eye.textContent=showing?'show':'hide'; } } });
+      v.addEventListener('input',function(e){ var c=e.target.closest?e.target.closest('.acc-cred'):null; if(c){ setCred(c.getAttribute('data-name'), c.getAttribute('data-f'), c.value); } });
       v.addEventListener('keydown',function(e){ if(e.key==='Enter'){ var a=e.target.closest?e.target.closest('.acc-add'):null; if(a){ window.LifeOSAccounts.addExtra(a.value,''); } } });
     } return v; }
   function render(){ css(); var v=document.getElementById('lo-accounts-view'); if(!v||!v.classList.contains('on'))return;
-    var g=groups(); var total=g.reduce(function(a,c){return a+c.items.length;},0);
+    var rows=allAccounts(); var cr=creds();
     v.innerHTML='<div class="acc-head"><div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-4)">LifeOS · Registry</div></div>'
-      +'<div class="acc-head"><h1>Accounts</h1><span class="acc-tot">'+total+' open</span></div>'
-      +'<p class="acc-sub">Every open account in one place — banking, investments, credit, subscriptions, and services. Financial details are managed in Money.</p>'
-      +'<div class="acc-grid">'+g.map(function(cat){
-        return '<div class="acc-cat" style="--c:'+cat.c+'"><div class="acc-cat-h">'+esc(cat.cat)+' <span>'+cat.items.length+'</span></div>'
-          +(cat.items.length?cat.items.map(function(it){ return '<div class="acc-row"><div><div class="acc-nm">'+esc(it.name)+'</div>'+(it.sub?'<div class="acc-in">'+esc(it.sub)+'</div>':'')+'</div>'+(it.val?'<div class="acc-val'+(it.neg?' neg':'')+'">'+esc(it.val)+'</div>':(it.del!=null?'<button class="acc-x" data-del="'+it.del+'">×</button>':''))+'</div>'; }).join(''):'<div class="acc-empty">None yet.</div>')
-          +(cat.addable?'<input class="acc-add" placeholder="+ add an account (e.g. GitHub, iCloud)…">':'')+'</div>';
-      }).join('')+'</div>';
+      +'<div class="acc-head"><h1>Accounts</h1><span class="acc-tot">'+rows.length+' open</span></div>'
+      +'<p class="acc-sub">Every open account in one place, with sign-in details. Passwords are hidden until you reveal them.</p>'
+      +'<table class="acc-tbl"><thead><tr><th>Account</th><th>User name</th><th>Password</th><th></th></tr></thead><tbody>'
+      +rows.map(function(r){ var c=cr[r.name]||{user:"",pass:""};
+          return '<tr>'
+            +'<td><div class="acc-nm">'+esc(r.name)+'</div><div class="acc-in">'+esc(r.cat)+'</div></td>'
+            +'<td><input class="acc-cred" data-name="'+esc(r.name)+'" data-f="user" value="'+esc(c.user)+'" placeholder="username / email" autocomplete="off"></td>'
+            +'<td><div class="acc-pw"><input class="acc-cred acc-pass" type="password" data-name="'+esc(r.name)+'" data-f="pass" value="'+esc(c.pass)+'" placeholder="••••••••" autocomplete="off"><button type="button" class="acc-eye">show</button></div></td>'
+            +'<td>'+(r.del!=null?'<button class="acc-x" data-del="'+r.del+'">×</button>':'')+'</td>'
+            +'</tr>';
+        }).join('')
+      +'</tbody></table>'
+      +'<input class="acc-add" placeholder="+ add an account (e.g. GitHub, iCloud)…" style="max-width:340px">'
+      +'<p class="acc-note">Heads up: these are saved only in this browser (local storage), which is not an encrypted vault. For anything sensitive, keep the source of truth in your password manager.</p>';
   }
   window.LifeOSAccounts.render=render;
   window.LifeOSAccounts.show=function(){ var v=ensureSection(); if(!v)return; try{var _n=document.getElementById("tb-name"); if(_n)_n.textContent="Accounts";}catch(e){} document.querySelectorAll('#main .view').forEach(function(s){ if(s!==v) s.classList.remove('on'); }); v.classList.add('on'); document.querySelectorAll('#rail .navbtn').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-view')==='accounts'); }); render(); };
@@ -2335,6 +2359,7 @@
       var t=(b.getAttribute('data-lo-orig')||b.textContent).trim();
       if(HIDE.indexOf(t)>=0){ b.style.display='none'; return; }
       if(t==="Bills"){ if(!b.getAttribute('data-lo-orig')) b.setAttribute('data-lo-orig','Bills'); if(b.textContent.trim()!=="Bill Tracker") b.textContent="Bill Tracker"; }
+      if(t==="Budget"){ if(!b.getAttribute('data-lo-orig')) b.setAttribute('data-lo-orig','Budget'); if(b.textContent.trim()!=="Budgets") b.textContent="Budgets"; }
     });
     if(!bar.querySelector('[data-lo-cashflow]')){
       var anchor=btns.filter(function(b){return /Bill Tracker|Transactions|Budget/.test(b.textContent);})[0]||btns[0];
@@ -2507,6 +2532,37 @@
   }
   var done=seed(); var n=0, iv=setInterval(function(){ if(seed()||++n>25) clearInterval(iv); },500);
   window.LifeOSValues27={ seed:seed, list:V27 };
+})();
+
+/* ====================================================================
+   Block 47 — Every list single-column. Force all .lr-rows grids to one
+   full-width column (Goals, Projects, Practices, and the rest). Persist
+   through the boot-time style strip.
+   ==================================================================== */
+(function(){
+  function ensure(){ if(document.getElementById("lo-onecol-css")) return;
+    var css=document.createElement("style"); css.id="lo-onecol-css";
+    css.textContent="#main .lr-rows{ grid-template-columns:1fr !important; }";
+    (document.head||document.documentElement).appendChild(css);
+  }
+  ensure(); setInterval(ensure,3000);
+  window.LifeOSOneCol={ ensure:ensure };
+})();
+
+/* ====================================================================
+   Block 48 — Kill the time-scope tabs on the Tasks view (Today / This
+   week / … / Next 5 yrs / Recurring). Persistent (the tab bar re-renders).
+   ==================================================================== */
+(function(){
+  var TIMES=["This week","This month","This quarter","This year","Next 3 yrs","Next 5 yrs","Next 3 years","Next 5 years","Recurring"];
+  function activeTasks(){ return (location.hash||"").indexOf("tasks")>-1 || (function(){var n=document.querySelector('.navbtn.on[data-view="tasks"]');return !!n;})(); }
+  function clean(){ if(!activeTasks()) return; var bar=document.getElementById("tb-tabs"); if(!bar) return;
+    [].slice.call(bar.querySelectorAll("button, .tb-tab")).forEach(function(b){ var t=(b.getAttribute("data-lo-orig")||b.textContent).trim(); if(TIMES.indexOf(t)>=0){ b.style.display="none"; return; } if(t==="Today"){ if(!b.getAttribute("data-lo-orig")) b.setAttribute("data-lo-orig","Today"); if(b.textContent.trim()!=="Tasks") b.textContent="Tasks"; } });
+  }
+  window.LifeOSTaskTabs={ clean:clean, TIMES:TIMES };
+  var iv=setInterval(clean,600);
+  if(typeof window.addEventListener==="function") window.addEventListener("hashchange",function(){ setTimeout(clean,60); setTimeout(clean,350); });
+  if(document.readyState!=="loading") clean();
 })();
 
 </script>
