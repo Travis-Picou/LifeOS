@@ -2751,58 +2751,98 @@
 })();
 
 /* ====================================================================
-   Block 51 — Bill Tracker: full-year Jan–Dec paid matrix + year nav.
-   Upgrades the 6-trailing-months bills matrix to a row per bill with
-   all 12 months of a selectable year (‹ 2026 ›). Paid flags stay in
-   bill.paidMonths keyed "YYYY-MM", so history carries across years.
-   Reuses MoneyEngine.toggleBillMonth / addC / delC and the .bm table
-   styling. API: window.LifeOSBillYear {months12}.
+   Block 51 — Bill Tracker: full-year Jan–Dec paid matrix (v2).
+   MoneyOS (MV2) replaced MoneyEngine's classic tab renderer, so this
+   wraps MoneyEngine.render itself: when tab==="bills" it paints a
+   bills × 12-months matrix into #view-surface — one row per bill,
+   a paid checkbox per month, ‹year› navigation, owner filter
+   (Both / Travis / Tan / Joint respected), n/12 pills, autopay tags.
+   Data: MV2._data.BILLS (the real household bills) with fallback to
+   state.bills. Paid flags persist to state.billsPaidYear keyed
+   "<bill name>" → {"YYYY-MM":bool}; legacy bill.paidMonths honored.
+   API: window.LifeOSBillYear {year,owner,months12,nav,setOwner,
+   toggle,addBill}.
    ==================================================================== */
 (function(){
-  function st(){ try{ return window.LifeOS?window.LifeOS.get():{}; }catch(e){ return {}; } }
   var E=function(s){ return (''+(s==null?'':s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
   function months12(y){ var out=[],now=new Date(); for(var m=0;m<12;m++){ var d=new Date(y,m,1); out.push({ ym:y+'-'+(m+1<10?'0':'')+(m+1), label:d.toLocaleDateString(undefined,{month:'short'}), cur:(y===now.getFullYear()&&m===now.getMonth()) }); } return out; }
-  window.LifeOSBillYear={ months12:months12 };
-  function css(){ if(document.getElementById('lo-billyear-css')||!document.head)return;
+  function nowYm(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1); }
+  function st(){ try{ return window.LifeOS?window.LifeOS.get():{}; }catch(e){ return {}; } }
+  function bills(){
+    try{ if(window.MV2&&MV2._data&&Array.isArray(MV2._data.BILLS)&&MV2._data.BILLS.length){
+      return MV2._data.BILLS.map(function(b){ return { key:b.n, name:b.n, amount:+b.a||0, entity:b.e||'', due:b.d||0, owner:b.o||'Joint', au:!!b.au, legacy:null }; }); } }catch(e){}
+    try{ return (st().bills||[]).map(function(b){ var lg=b.paidMonths||((b.paid==='yes')?(function(){var o={};o[nowYm()]=true;return o;})():null);
+      return { key:b.id||b.name, name:b.name, amount:+b.amount||0, entity:b.institution||'', due:b.due||0, owner:'Joint', au:false, legacy:lg }; }); }catch(e){ return []; }
+  }
+  function paidMap(){ try{ return st().billsPaidYear||{}; }catch(e){ return {}; } }
+  function isPaid(pm,b,ym){ var o=pm[b.key]||{}; if(Object.prototype.hasOwnProperty.call(o,ym)) return !!o[ym]; return !!(b.legacy&&b.legacy[ym]); }
+  function rerender(){ try{ if(window.MoneyEngine&&MoneyEngine.tab==='bills'&&typeof MoneyEngine.render==='function') MoneyEngine.render(); }catch(e){} }
+  window.LifeOSBillYear={
+    year:(new Date()).getFullYear(), owner:'Both', months12:months12,
+    nav:function(d){ this.year=(+this.year||new Date().getFullYear())+(d|0); rerender(); },
+    setOwner:function(o){ this.owner=o; rerender(); },
+    toggle:function(key,ym){ try{ var s=st(); s.billsPaidYear=s.billsPaidYear||{}; var m=s.billsPaidYear[key]=s.billsPaidYear[key]||{}; var b=bills().filter(function(x){return x.key===key;})[0]; var cur=Object.prototype.hasOwnProperty.call(m,ym)?!!m[ym]:!!(b&&b.legacy&&b.legacy[ym]); m[ym]=!cur; window.LifeOS.set(s); }catch(e){} rerender(); },
+    addBill:function(){ try{ if(window.MV2&&typeof MV2.itemForm==='function'){ MV2.itemForm('bills',null); return; } }catch(e){} try{ window.MoneyEngine.addC('bills'); }catch(e){} }
+  };
+  function css(){
+    if(document.getElementById('lo-billyear-css')||!document.head)return;
     document.head.insertAdjacentHTML('beforeend','<style id="lo-billyear-css">'
-    +'.bm-yearbar{display:flex;align-items:center;gap:10px;margin:0 0 10px}'
+    +'.bm-tools{display:flex;justify-content:flex-end;margin-bottom:10px}.bm-wrap{overflow-x:auto;border:1px solid var(--line-1);border-radius:13px;background:var(--bg-2)}'
+    +'.bm{width:100%;border-collapse:collapse;font-size:13px}'
+    +'.bm th{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-4);font-weight:700;padding:11px 8px;text-align:center;border-bottom:1px solid var(--line-1)}'
+    +'.bm th.bm-lead{text-align:left;padding-left:15px}.bm th.bm-m.cur,.bm td.bm-c.cur{background:color-mix(in srgb,#1f9d57 9%,transparent)}'
+    +'.bm td{padding:9px 8px;text-align:center;border-bottom:1px solid var(--line-1)}.bm tr:last-child td{border-bottom:none}'
+    +'.bm td.bm-ld{text-align:left;padding-left:15px;color:var(--fg-1)}.bm-ld b{font-weight:600}.bm-sub{display:block;font-size:10px;color:var(--fg-4)}.bm-amt{font-family:var(--mono);color:var(--fg-2)}'
+    +'.bm-dot{width:24px;height:24px;border-radius:7px;border:1px solid var(--line-2);background:var(--bg-1);color:#1f9d57;font-size:12px;font-weight:700;cursor:pointer;display:inline-grid;place-items:center}'
+    +'.bm-dot.on{background:#1f9d57;border-color:#1f9d57;color:#fff}.bm-dot:hover{border-color:#1f9d57}'
+    +'.bm-yearbar{display:flex;align-items:center;gap:10px;margin:2px 0 12px;flex-wrap:wrap}'
     +'.bm-yearbar .yb-b{border:1px solid var(--line-2);background:var(--bg-2);color:var(--fg-2);border-radius:8px;width:26px;height:26px;cursor:pointer;font-size:13px;line-height:1}'
     +'.bm-yearbar .yb-b:hover{color:var(--fg-1);border-color:var(--accent)}'
     +'.bm-yearbar .yb-y{font-family:var(--mono);font-weight:800;font-size:14px;color:var(--fg-1)}'
-    +'.bm-yearbar .yb-n{font-size:11px;color:var(--fg-4);font-family:var(--mono)}'
+    +'.bm-yearbar .yb-sp{flex:1}'
+    +'.bm-own{display:inline-flex;gap:3px;background:var(--bg-3,var(--bg-1));border-radius:999px;padding:3px}'
+    +'.bm-own button{background:none;border:none;color:var(--fg-3);font-size:12px;font-weight:600;padding:5px 13px;border-radius:999px;cursor:pointer}'
+    +'.bm-own button.on{background:var(--accent);color:var(--on-accent,#fff)}'
     +'.bm-paidpill{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent);border-radius:999px;padding:1px 7px;margin-left:8px}'
-    +'</style>'); }
+    +'.bm-au{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.06em;color:var(--cool,#0e8aa6);border:1px solid color-mix(in srgb,var(--cool,#0e8aa6) 40%,transparent);border-radius:5px;padding:1px 5px;margin-left:7px;text-transform:uppercase}'
+    +'.bm-ownchip{font-family:var(--mono);font-size:9px;color:var(--fg-4)}'
+    +'</style>');
+  }
+  function view(){
+    css();
+    var el=document.getElementById('view-surface'); if(!el) return false;
+    var Y=window.LifeOSBillYear; var y=+Y.year||new Date().getFullYear(); var ms=months12(y); var ow=Y.owner;
+    var all=bills(); var list=all.filter(function(b){ return ow==='Both'||b.owner===ow||b.owner==='Joint'; });
+    var pm=paidMap();
+    var mTot=0; for(var i0=0;i0<list.length;i0++) mTot+=list[i0].amount;
+    var head='<div class="surf-head" style="--c:#1f9d57"><div class="surf-bar"></div><div><p class="eyebrow" style="color:#1f9d57">Money</p><h1>Money management</h1></div></div>';
+    var owners=['Both','Travis','Tan'];
+    var ownseg='<span class="bm-own">'+owners.map(function(o){ return '<button class="'+(ow===o?'on':'')+'" onclick="LifeOSBillYear.setOwner(\''+o+'\')">'+o+'</button>'; }).join('')+'</span>';
+    var bar='<div class="bm-yearbar"><button class="yb-b" onclick="LifeOSBillYear.nav(-1)" title="Previous year">‹</button><span class="yb-y">'+y+'</span><button class="yb-b" onclick="LifeOSBillYear.nav(1)" title="Next year">›</button>'+ownseg+'<span class="yb-sp"></span><button class="btn small" onclick="LifeOSBillYear.addBill()">+ Bill</button></div>';
+    var thead='<tr><th class="bm-lead">Bill</th><th class="bm-lead">Amount</th>'+ms.map(function(m){return '<th class="bm-m'+(m.cur?' cur':'')+'">'+E(m.label)+'</th>';}).join('')+'</tr>';
+    var rows=list.map(function(b){
+      var n=0; for(var i=0;i<ms.length;i++){ if(isPaid(pm,b,ms[i].ym)) n++; }
+      var cells=ms.map(function(m){ var on=isPaid(pm,b,m.ym); return '<td class="bm-c'+(m.cur?' cur':'')+'"><button class="bm-dot'+(on?' on':'')+'" onclick="LifeOSBillYear.toggle(\''+E(b.key).replace(/'/g,'&#39;')+'\',\''+m.ym+'\')" title="'+E((on?'Paid ':'Unpaid ')+m.ym)+'">'+(on?'✓':'')+'</button></td>'; }).join('');
+      return '<tr><td class="bm-ld"><b>'+E(b.name)+'</b>'+(b.au?'<span class="bm-au">auto</span>':'')+'<span class="bm-paidpill">'+n+'/12</span><span class="bm-sub">'+E(b.entity)+(b.due?' · due '+E(b.due):'')+' · <span class="bm-ownchip">'+E(b.owner).toUpperCase()+'</span></span></td><td class="bm-ld"><span class="bm-amt">$'+E(Math.round(b.amount).toLocaleString?Math.round(b.amount).toLocaleString():b.amount)+'</span></td>'+cells+'</tr>';
+    }).join('');
+    el.innerHTML=head
+      +'<p class="sub" style="margin:0 0 10px">One row per bill — the whole year at a glance. Tap a month to mark it paid. <b style="color:var(--fg-2)">'+list.length+' bills · $'+Math.round(mTot).toLocaleString()+'/mo</b></p>'
+      +bar
+      +(list.length?'<div class="bm-wrap"><table class="bm">'+thead+rows+'</table></div>':'<div class="lr-empty2" style="margin-top:8px">No bills yet.</div>');
+    return true;
+  }
   function install(){
-    var M=window.MoneyEngine;
-    if(!M) return false;
-    if(typeof M.tab_bills!=='function') return false;
-    if(M.tab_bills.__yr) return true;
-    M.__billYear=M.__billYear||(new Date()).getFullYear();
-    M.billYear=function(d){ M.__billYear=(+M.__billYear||new Date().getFullYear())+(d|0); try{ M.tab_bills(); }catch(e){} };
-    M.tab_bills=function(){
-      css();
-      var b=document.getElementById('m-body'); if(!b) return;
-      var s=st(); var bills=(s.bills||[]); var y=+M.__billYear||new Date().getFullYear(); var ms=months12(y);
-      var nowYm=(function(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1); })();
-      for(var mi=0; mi<bills.length; mi++){ var x=bills[mi]; if(x.paid==='yes' && !(x.paidMonths&&Object.keys(x.paidMonths).length)){ x.paidMonths=x.paidMonths||{}; x.paidMonths[nowYm]=true; } }
-      var head='<tr><th class="bm-lead">Bill</th><th class="bm-lead">Amount</th>'+ms.map(function(m){return '<th class="bm-m'+(m.cur?' cur':'')+'">'+E(m.label)+'</th>';}).join('')+'<th></th></tr>';
-      var body=bills.map(function(r){
-        var paid=r.paidMonths||{}; var n=0; for(var i2=0;i2<ms.length;i2++){ if(paid[ms[i2].ym]) n++; }
-        var cells=ms.map(function(m){ var on=!!paid[m.ym]; return '<td class="bm-c'+(m.cur?' cur':'')+'"><button class="bm-dot'+(on?' on':'')+'" onclick="MoneyEngine.toggleBillMonth(\''+r.id+'\',\''+m.ym+'\')" title="'+E((on?'Paid ':'Unpaid ')+m.ym)+'">'+(on?'✓':'')+'</button></td>'; }).join('');
-        return '<tr><td class="bm-ld"><b>'+E(r.name)+'</b>'+(r.due?'<span class="bm-sub">due '+E(r.due)+'</span>':'')+'<span class="bm-paidpill">'+n+'/12</span></td><td class="bm-ld"><span class="bm-amt">$'+E(r.amount||0)+'</span></td>'+cells+'<td class="bm-x"><button class="bm-del" title="Remove">✕</button></td></tr>';
-      }).join('');
-      b.innerHTML='<p class="sub" style="margin:0 0 10px">One row per bill — the whole year at a glance. Tap a month to mark it paid.</p>'
-        +'<div class="bm-yearbar"><button class="yb-b" onclick="MoneyEngine.billYear(-1)" title="Previous year">‹</button><span class="yb-y">'+y+'</span><button class="yb-b" onclick="MoneyEngine.billYear(1)" title="Next year">›</button><span class="yb-n">paid flags stored per month · year</span></div>'
-        +'<div class="bm-tools"><button class="btn small" onclick="MoneyEngine.addC(\'bills\')">+ Bill</button></div>'
-        +(bills.length?'<div class="bm-wrap"><table class="bm">'+head+body+'</table></div>':'<div class="lr-empty2" style="margin-top:8px">No bills yet.</div>');
-      var dels=b.querySelectorAll('.bm-del');
-      for(var di=0; di<dels.length; di++){ (function(i3){ dels[i3].onclick=function(){ try{ M.delC('bills', bills[i3].id); }catch(e){} }; })(di); }
-    };
-    M.tab_bills.__yr=true;
+    var M=window.MoneyEngine; if(!M||typeof M.render!=='function') return false;
+    if(M.render.__billyr) return true;
+    var base=M.render.bind(M);
+    M.render=function(){ if(this.tab==='bills'){ try{ if(view()) return; }catch(e){} } return base.apply(this,arguments); };
+    M.render.__billyr=true;
+    try{ if(M.tab==='bills'&&(location.hash||'').indexOf('money')>-1) M.render(); }catch(e){}
     return true;
   }
   var __ys=[80,400,1200,3000]; for(var __yi=0;__yi<__ys.length;__yi++) setTimeout(install,__ys[__yi]);
   var __yiv=setInterval(function(){ if(install()) clearInterval(__yiv); },3000);
+  if(typeof window.addEventListener==='function') window.addEventListener('hashchange', function(){ setTimeout(install,100); });
   if(document.readyState!=='loading') install();
 })();
 
@@ -2977,6 +3017,114 @@
   ensure(); setInterval(ensure,3000);
   if(typeof window.addEventListener==='function') window.addEventListener('hashchange', function(){ setTimeout(ensure,80); });
   window.LifeOSThemesX={ ensure:ensure, CSS:CSS };
+})();
+
+/* ====================================================================
+   Block 54 — Elevation layer: end-to-end interaction & aesthetic
+   polish. View-enter motion with a soft stagger, pressable buttons,
+   visible focus rings, input affordances, themed thin scrollbars,
+   hover language for rows/cards/tabs (color & border only — never
+   transform, per the hover-lock decision), accent text selection,
+   overlay fade-in. Everything CSS-only (no pollers), and every
+   animation is disabled under prefers-reduced-motion.
+   API: window.LifeOSElevate {ensure, CSS}.
+   ==================================================================== */
+(function(){
+  var CSS=''
+  +'@keyframes loRise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}'
+  +'@keyframes loFade{from{opacity:0}to{opacity:1}}'
+  /* view-enter motion with stagger (replays on every re-render) */
+  +'#view-surface>*{animation:loRise .34s var(--ease,cubic-bezier(.22,.61,.36,1)) both}'
+  +'#view-surface>*:nth-child(2){animation-delay:.04s}#view-surface>*:nth-child(3){animation-delay:.08s}'
+  +'#view-surface>*:nth-child(4){animation-delay:.12s}#view-surface>*:nth-child(5){animation-delay:.16s}'
+  +'#view-surface>*:nth-child(n+6){animation-delay:.2s}'
+  +'#main .view.on>*:first-child{animation:loFade .28s ease both}'
+  /* pressable buttons + visible focus */
+  +'#app button{-webkit-tap-highlight-color:transparent}'
+  +'.btn:active,.tb-tab:active,.navbtn:active,.bm-dot:active,.tl-chk:active{transform:scale(.965)}'
+  +':is(.btn,.tb-tab,.navbtn,button):focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 70%,transparent);outline-offset:2px;border-radius:8px}'
+  +'input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 55%,transparent);outline-offset:1px}'
+  /* inputs breathe */
+  +'#main input,#main select,#main textarea{transition:border-color .18s var(--ease,ease),box-shadow .18s var(--ease,ease)}'
+  +'#main input:hover,#main select:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--line-2))}'
+  /* nav + banner tab hover language */
+  +'.navbtn{transition:box-shadow .18s var(--ease,ease),color .18s,background .18s}'
+  +'.navbtn:hover{box-shadow:inset 2px 0 0 color-mix(in srgb,var(--accent) 55%,transparent)}'
+  +'#tb-tabs .tb-tab{position:relative}'
+  +'#tb-tabs .tb-tab:hover{color:var(--chrome-fg,#fff)}'
+  /* rows & cards: color-only hover (hover-lock respected) */
+  +'#main .lr-row{transition:border-color .16s var(--ease,ease),background .16s,border-left-width .16s}'
+  +'#main .lr-row:hover{border-left-width:5px}'
+  +'#main .bnd-cat,#main .as-cat,#main .lr-card,#main .tl-list{transition:border-color .18s var(--ease,ease),box-shadow .18s}'
+  +'#main .bnd-cat:hover,#main .as-cat:hover{border-color:color-mix(in srgb,var(--c,var(--accent)) 45%,var(--line-1))}'
+  +'.bm tr{transition:background .14s ease}'
+  +'.bm tr:hover td{background:color-mix(in srgb,var(--accent) 4%,transparent)}'
+  +'.bm-dot{transition:background .15s var(--ease,ease),border-color .15s,color .15s}'
+  /* overlays & sheets ease in */
+  +'#proj-scr,[class*="modal"],[id*="modal"],#ls-ov{animation:loFade .22s ease both}'
+  /* themed thin scrollbars */
+  +'#main::-webkit-scrollbar,#tb-tabs::-webkit-scrollbar,body::-webkit-scrollbar{height:8px;width:9px}'
+  +'#main::-webkit-scrollbar-thumb,body::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--fg-4,#888) 45%,transparent);border-radius:99px;border:2px solid transparent;background-clip:content-box}'
+  +'#main::-webkit-scrollbar-thumb:hover,body::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--accent) 60%,transparent);background-clip:content-box}'
+  +'#main::-webkit-scrollbar-track,body::-webkit-scrollbar-track{background:transparent}'
+  /* selection + micro-typography */
+  +'::selection{background:color-mix(in srgb,var(--accent) 30%,transparent)}'
+  +'#main h1{text-wrap:balance}'
+  +'#main .eyebrow{animation:loFade .4s ease both}'
+  /* respect reduced motion */
+  +'@media (prefers-reduced-motion:reduce){#view-surface>*,#main .view.on>*:first-child,#proj-scr,[class*="modal"],#ls-ov,#main .eyebrow{animation:none !important}.btn:active,.tb-tab:active,.navbtn:active,.bm-dot:active,.tl-chk:active{transform:none}}';
+  function ensure(){
+    var el=document.getElementById('lo-elevate-css');
+    if(el){ if(el.textContent!==CSS){ try{ el.textContent=CSS; }catch(e){} } }
+    else if(document.head||document.documentElement){ el=document.createElement('style'); el.id='lo-elevate-css'; el.textContent=CSS; (document.head||document.documentElement).appendChild(el); }
+  }
+  ensure(); setInterval(ensure,3000);
+  if(typeof window.addEventListener==='function') window.addEventListener('hashchange', function(){ setTimeout(ensure,80); });
+  window.LifeOSElevate={ ensure:ensure, CSS:CSS };
+})();
+
+/* ====================================================================
+   Block 55 — Fix: project cards wouldn't expand. The Project-OS
+   detail screen (ProjectsEngine.openDetail) assumes a rich schema —
+   p.budget{spent,planned,items}, p.scope{in,out}, phases, miles,
+   assume, decide, risks, cat/owner/prog/summary — and THREW
+   ("undefined.spent") on any project without a budget, so the click
+   silently died. This wraps openDetail to normalize the record first
+   and scrubs NaN money/burn readouts after render.
+   API: window.LifeOSProjFix {normalize}.
+   ==================================================================== */
+(function(){
+  function normalize(p){
+    if(!p) return p;
+    p.health=p.health||'green';
+    p.budget=p.budget||{}; p.budget.spent=+p.budget.spent||0; p.budget.planned=+p.budget.planned||0; p.budget.items=p.budget.items||[];
+    p.scope=p.scope||{}; p.scope.in=p.scope.in||[]; p.scope.out=p.scope.out||[];
+    p.phases=p.phases||[]; p.miles=p.miles||[]; p.assume=p.assume||[]; p.decide=p.decide||[]; p.risks=p.risks||[];
+    p.cat=p.cat||'Project'; p.owner=p.owner||'Travis';
+    if(p.prog==null) p.prog=(p.progress!=null?+p.progress||0:0);
+    p.start=p.start||'—'; p.due=p.due||'—'; p.summary=p.summary||p.note||'';
+    return p;
+  }
+  window.LifeOSProjFix={ normalize:normalize };
+  function install(){
+    var P=window.ProjectsEngine;
+    if(!P||typeof P.openDetail!=='function') return false;
+    if(P.openDetail.__safe) return true;
+    var base=P.openDetail.bind(P);
+    P.openDetail=function(id,jump){
+      try{ if(typeof P.find==='function') normalize(P.find(id)); }catch(e){}
+      var r;
+      try{ r=base(id,jump); }catch(e){ try{ if(P.form) P.form(id); }catch(x){} return; }
+      try{ var scr=document.getElementById('proj-scr'); if(scr&&/NaN/.test(scr.innerHTML)){ scr.innerHTML=scr.innerHTML.replace(/NaN%/g,'0%').replace(/\$\s?NaN/g,'$0').replace(/>NaN</g,'>0<'); } }catch(e){}
+      return r;
+    };
+    P.openDetail.__safe=true;
+    return true;
+  }
+  var __ps=[80,400,1200,3000]; for(var __pi=0;__pi<__ps.length;__pi++) setTimeout(install,__ps[__pi]);
+  var __piv=setInterval(function(){ if(install()) clearInterval(__piv); },3000);
+  if(typeof window.addEventListener==='function') window.addEventListener('hashchange', function(){ setTimeout(install,100); });
+  if(document.readyState!=='loading') install();
 })();
 
 
