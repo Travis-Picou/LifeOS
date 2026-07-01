@@ -2014,7 +2014,7 @@
    trend lines, no duplicate sparklines.
    ==================================================================== */
 (function(){
-  var SELS=['.cc-kpi','.lm-tile','.hc','.ch-card','.ch-fn','.mvc-stat','.mvc-splitc'];
+  var SELS=['.cc-kpi','.lm-tile','.hc','.ch-card','.ch-fn','.mvc-stat','.mvc-splitc','.cc-card','#tb-metrics .tbm'];
   function num(t){ var m=(''+t).replace(/[^0-9.\-]/g,''); var n=parseFloat(m); return isNaN(n)?null:n; }
   function spark(vals,color){
     if(!vals||vals.length<2) return '';
@@ -2080,6 +2080,35 @@
   setInterval(tick, 700);
   if(typeof window.addEventListener==='function') window.addEventListener('hashchange', function(){ setTimeout(tick, 150); });
   if(document.readyState!=='loading') tick();
+})();
+
+
+/* ====================================================================
+   Block 36 — Task Board = InsuletOS "Ops Board". Themed lanes with
+   per-status neon accents, count pills, and elevated cards. CSS-only,
+   theme-driven (neon in Palmwave, soft in Bloom, etc.).
+   ==================================================================== */
+(function(){
+  function css(){
+    if(document.getElementById('lo-board-css')||!document.head||!document.getElementById('app'))return;
+    document.head.insertAdjacentHTML('beforeend','<style id="lo-board-css">'
+      +'#view-tasks #task-board.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:start}'
+      +'@media(max-width:900px){#view-tasks #task-board.board{grid-template-columns:1fr 1fr}}'
+      +'#view-tasks #task-board .col{background:var(--bg-1);border:1px solid var(--line-1);border-radius:var(--r-md,14px);padding:12px 11px;min-height:140px}'
+      +'#view-tasks #task-board .col>h3{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-2);display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 2px 12px;padding-bottom:9px;border-bottom:2px solid var(--lc,var(--accent))}'
+      +'#view-tasks #task-board .col>h3 span{font-family:var(--mono);font-size:10.5px;font-weight:800;color:var(--lc,var(--accent));background:color-mix(in srgb,var(--lc,var(--accent)) 16%,transparent);border-radius:999px;padding:2px 9px;line-height:1}'
+      +'#view-tasks #task-board .col .task,#view-tasks #task-board .col [data-id]{background:var(--bg-2);border:1px solid var(--line-1);border-left:3px solid var(--lc,var(--accent));border-radius:var(--r-sm,10px);box-shadow:var(--e-1);padding:11px 12px;margin-bottom:9px;cursor:grab;transition:box-shadow .12s var(--ease,ease),transform .12s var(--ease,ease)}'
+      +'#view-tasks #task-board .col .task:hover,#view-tasks #task-board .col [data-id]:hover{box-shadow:var(--e-2);transform:translateY(-1px)}'
+      +'#view-tasks #task-board .col:nth-child(1){--lc:var(--cool)}'
+      +'#view-tasks #task-board .col:nth-child(2){--lc:var(--accent)}'
+      +'#view-tasks #task-board .col:nth-child(3){--lc:var(--warn)}'
+      +'#view-tasks #task-board .col:nth-child(4){--lc:var(--good)}'
+      +'</style>');
+  }
+  function go(){ if(!document.getElementById('app'))return false; css(); return false; }
+  window.LifeOSBoard={ recss:function(){ var e=document.getElementById('lo-board-css'); if(e)e.remove(); css(); } };
+  var iv=setInterval(go,120); setTimeout(function(){ clearInterval(iv); },30000);
+  if(document.readyState!=='loading') go();
 })();
 
 </script>
