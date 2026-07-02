@@ -4035,7 +4035,10 @@
     +'.lo-privcard button{font-size:11.5px;font-weight:600;padding:7px 13px;border-radius:9px;cursor:pointer;border:1px solid var(--line,rgba(0,0,0,.16));background:transparent;color:inherit}'
     +'.lo-privcard button.danger{color:#e5484d;border-color:rgba(229,72,77,.4)}'
     +'.lo-privcard button.danger:active{background:rgba(229,72,77,.12)}'
-    +'#lo-delc input{width:100%;box-sizing:border-box;margin:10px 0;padding:9px 12px;border-radius:9px;border:1px solid var(--line,rgba(255,255,255,.2));background:transparent;color:inherit;font-size:13px}';
+    +'#lo-delc input,#lo-pwc input[type="password"]{width:100%;box-sizing:border-box;margin:10px 0 0;padding:9px 12px;border-radius:9px;border:1px solid var(--line,rgba(255,255,255,.2));background:transparent;color:inherit;font-size:13px}'
+    +'#lo-pwc input[type="password"]:focus-visible{border-color:var(--accent,#e0552b);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent,#e0552b) 28%,transparent);outline:none}'
+    +'#lo-pwc .lo-pw-show{display:flex;align-items:center;gap:7px;font-size:11.5px;opacity:.75;margin:10px 0 4px;cursor:pointer}#lo-pwc .lo-pw-show input{width:auto;margin:0}'
+    +'#lo-pwc .lo-pw-err{font-size:12px;min-height:16px;margin:8px 0 10px;color:#ff8a80}#lo-pwc .lo-pw-err.ok{color:#7fd49a}';
   function css(){ var el=document.getElementById("lo-policy-css");
     if(el){ if(el.textContent!==CSS) try{ el.textContent=CSS; }catch(e){} }
     else if(document.head||document.documentElement){ el=document.createElement("style"); el.id="lo-policy-css"; el.textContent=CSS; (document.head||document.documentElement).appendChild(el); } }
@@ -4100,7 +4103,48 @@
     if(go) go.onclick=function(){ if(inp&&inp.value==="DELETE"){ go.disabled=true; go.textContent="Deleting…"; deleteAccount("DELETE"); } else if(inp){ inp.style.borderColor="#e5484d"; } };
     try{ inp.focus(); }catch(e){}
   }
-  window.LifeOSPrivacyOps={ downloadData:downloadData, deleteAccount:deleteAccount, confirmDelete:confirmDelete };
+  // In-app password change (FR-1.16): the signed-in path. The signed-out path
+  // stays "Forgot password?" at the gate (Block 0). Never stored or logged —
+  // the value goes only to auth.updateUser; sessions persist on this device.
+  function changePassword(p,c){
+    if(!p||String(p).length<6) return Promise.resolve("short");
+    if(p!==c) return Promise.resolve("mismatch");
+    return getClient().then(function(cl){
+      return cl.auth.updateUser({password:p}).then(function(r){ return (r&&r.error)?("error:"+((r.error.message)||"failed")):"changed"; });
+    }).catch(function(){ return "error:network"; });
+  }
+  function confirmChangePw(){
+    css(); close();
+    var m=document.createElement("div"); m.id="lo-policy"; m.setAttribute("role","dialog"); m.setAttribute("aria-modal","true"); m.setAttribute("aria-label","Change password");
+    m.innerHTML='<div class="lo-pcard" id="lo-pwc"><h3>Change password</h3>'
+      +'<p>Set a new password for your account. You stay signed in on this device. Signed out? Use “Forgot password?” at the gate instead.</p>'
+      +'<input id="lo-pw-n" type="password" autocomplete="new-password" placeholder="New password (min 6 characters)" aria-label="New password">'
+      +'<input id="lo-pw-c" type="password" autocomplete="new-password" placeholder="Confirm new password" aria-label="Confirm new password">'
+      +'<label class="lo-pw-show"><input id="lo-pw-s" type="checkbox"> Show password</label>'
+      +'<div class="lo-pw-err" id="lo-pw-err"></div>'
+      +'<div class="lo-pbtns"><button id="lo-pw-go">Change password</button><button id="lo-pw-no">Cancel</button></div></div>';
+    (document.body||document.documentElement).appendChild(m);
+    m.onclick=function(ev){ if(ev&&ev.target===m) close(); };
+    var n=m.querySelector("#lo-pw-n"), cf=m.querySelector("#lo-pw-c"), sh=m.querySelector("#lo-pw-s"),
+        err=m.querySelector("#lo-pw-err"), go=m.querySelector("#lo-pw-go"), no=m.querySelector("#lo-pw-no");
+    if(no) no.onclick=close;
+    if(sh) sh.onchange=function(){ var ty=sh.checked?"text":"password"; try{ n.type=ty; cf.type=ty; }catch(e){} };
+    function submit(){
+      err.className="lo-pw-err"; err.textContent="";
+      go.disabled=true; go.textContent="Saving…";
+      changePassword(n?n.value:"", cf?cf.value:"").then(function(res){
+        go.disabled=false; go.textContent="Change password";
+        if(res==="short"){ err.textContent="Password must be at least 6 characters."; }
+        else if(res==="mismatch"){ err.textContent="Those passwords don’t match."; }
+        else if(res==="changed"){ err.className="lo-pw-err ok"; err.textContent="Password changed ✓"; setTimeout(close,1100); }
+        else { err.textContent=res.replace(/^error:/,"Couldn’t change it: "); }
+      });
+    }
+    if(go) go.onclick=submit;
+    [n,cf].forEach(function(el){ if(el&&el.addEventListener) el.addEventListener("keydown",function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); submit(); } if(ev.key==="Escape") close(); }); });
+    try{ n.focus(); }catch(e){}
+  }
+  window.LifeOSPrivacyOps={ downloadData:downloadData, deleteAccount:deleteAccount, confirmDelete:confirmDelete, changePassword:changePassword, confirmChangePw:confirmChangePw };
   function installAcct(){
     var A=window.LifeOSAccounts; if(!A||typeof A.render!=="function") return false;
     if(A.render.__priv64) return true;
@@ -4111,6 +4155,7 @@
           vs.insertAdjacentHTML("beforeend",'<div class="lo-privcard"><h4>Privacy &amp; data</h4>'
             +'<p>Your data, your controls — export a complete copy, read the policies, or erase the account. Policies v'+PV+'.</p>'
             +'<div class="lo-pbtns"><button onclick="LifeOSPrivacyOps.downloadData()">⬇ Download my data</button>'
+            +'<button onclick="LifeOSPrivacyOps.confirmChangePw()">Change password…</button>'
             +'<button onclick="LifeOSPolicy.open(\'privacy\')">Privacy Policy</button>'
             +'<button onclick="LifeOSPolicy.open(\'terms\')">Terms</button>'
             +'<button class="danger" onclick="LifeOSPrivacyOps.confirmDelete()">Delete account &amp; data…</button></div></div>');
