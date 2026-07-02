@@ -4007,7 +4007,7 @@
   var PRIV='<h3>Privacy Policy <span class="lo-pv">v'+PV+' · '+PD+'</span></h3>'
     +'<p><b>What LifeOS stores.</b> Only what you enter: account email, profile & preferences, tasks/goals/projects, finances you type in, health readings and labs, values & beliefs, people and dates, career notes, documents metadata, journal text. No hidden telemetry, no analytics trackers, no ads.</p>'
     +'<p><b>Where it lives.</b> On this device (browser storage) and in one private database row tied to your account (Supabase, AWS us-east-1), protected by row-level security so only your signed-in session can read or write it. Transport is HTTPS; the database is encrypted at rest.</p>'
-    +'<p><b>Who processes it.</b> Supabase (database & auth), Vercel (hosting/CDN), jsDelivr/Google Fonts (static assets). If you invoke AI features with your own API key, the text you send goes to Anthropic — that is opt-in, per action, and disclosed here.</p>'
+    +'<p><b>Who processes it.</b> Supabase (database & auth), Vercel (hosting/CDN), jsDelivr/Google Fonts (static assets). If you connect a model to AI Studio with your own API key, the text you send (plus a small app-context summary) goes directly from your browser to Anthropic — opt-in, per message. The key itself is stored only on this device (browser storage), never in your synced state.</p>'
     +'<p><b>Special-category data.</b> Health readings, labs and beliefs/values are stored only because you choose to enter them, under the explicit consent you give at sign-up (recorded with version + timestamp in your own state).</p>'
     +'<p><b>Your rights.</b> Everything is editable in-app (rectification). <b>Download my data</b> exports your complete state as JSON (access/portability). <b>Delete account & data</b> erases your cloud row and local copy (erasure). Contact the operator for anything else.</p>'
     +'<p><b>Retention.</b> Your data persists until you delete it. No backups are kept by LifeOS beyond the platform’s standard operational backups.</p>'
@@ -4150,19 +4150,25 @@
     if(A.render.__priv64) return true;
     var base=A.render.bind(A);
     A.render=function(){ var r=base.apply(this,arguments);
-      try{ var vs=document.getElementById("view-surface");
-        if(vs && String(vs.innerHTML).indexOf("lo-privcard")<0){
-          vs.insertAdjacentHTML("beforeend",'<div class="lo-privcard"><h4>Privacy &amp; data</h4>'
-            +'<p>Your data, your controls — export a complete copy, read the policies, or erase the account. Policies v'+PV+'.</p>'
-            +'<div class="lo-pbtns"><button onclick="LifeOSPrivacyOps.downloadData()">⬇ Download my data</button>'
-            +'<button onclick="LifeOSPrivacyOps.confirmChangePw()">Change password…</button>'
-            +'<button onclick="LifeOSPolicy.open(\'privacy\')">Privacy Policy</button>'
-            +'<button onclick="LifeOSPolicy.open(\'terms\')">Terms</button>'
-            +'<button class="danger" onclick="LifeOSPrivacyOps.confirmDelete()">Delete account &amp; data…</button></div></div>');
+      // FIX (owner sweep 2026-07-02): target the REAL accounts section, never
+      // #view-surface — appending there polluted whichever view was active.
+      try{ var v=document.getElementById("lo-accounts-view");
+        if(v && String(v.innerHTML).indexOf("lo-privcard")<0){
+          v.insertAdjacentHTML("beforeend", privcardHtml());
         } }catch(e){}
       return r; };
     A.render.__priv64=true; return true;
   }
+  function privcardHtml(){
+    return '<div class="lo-privcard"><h4>Privacy &amp; data</h4>'
+      +'<p>Your data, your controls — export a complete copy, read the policies, or erase the account. Policies v'+PV+'.</p>'
+      +'<div class="lo-pbtns"><button onclick="LifeOSPrivacyOps.downloadData()">⬇ Download my data</button>'
+      +'<button onclick="LifeOSPrivacyOps.confirmChangePw()">Change password…</button>'
+      +'<button onclick="LifeOSPolicy.open(\'privacy\')">Privacy Policy</button>'
+      +'<button onclick="LifeOSPolicy.open(\'terms\')">Terms</button>'
+      +'<button class="danger" onclick="LifeOSPrivacyOps.confirmDelete()">Delete account &amp; data…</button></div></div>';
+  }
+  window.LifeOSPrivacyOps.privcardHtml=privcardHtml;
   css();
   var __ps=[150,600,1800,3200]; for(var __pi=0;__pi<__ps.length;__pi++) setTimeout(installAcct,__ps[__pi]);
   var __piv=setInterval(function(){ if(installAcct()) clearInterval(__piv); },3000);
@@ -4360,6 +4366,156 @@
     return res;
   }
   window.LifeOSThemeAudit={ THEMES:THEMES, DIMS:DIMS, probe:probe, applyVisual:applyVisual, measure:measure, pairDelta:pairDelta, run:run };
+})();
+
+/* ====================================================================
+   Block 67 — Documents view routing fix (owner sweep 2026-07-02:
+   "Document cards don't work"). ROOT CAUSE: the base app has TWO
+   documents renderers — the real DocsEngine register AND a generic
+   "Surface" placeholder (pretty component cards, "Open →", NO
+   handlers). Some navigation paths landed on the placeholder, so the
+   view showed clickable-looking dead cards and the register (with its
+   working DocsEngine.open cards) never mounted. FIX: on every arrival
+   at Documents (hashchange, rail click, boot), ensure the REAL
+   DocsEngine owns #view-surface — its render() rebuilds the full
+   scaffold (#dc-body) itself. Idempotent: skips when the register is
+   already live. Event-driven bursts only. API: window.LifeOSDocsFix.
+   ==================================================================== */
+(function(){
+  function onDocs(){ try{ return String(location.hash||"").indexOf("documents")>-1; }catch(e){ return false; } }
+  function ensure(){
+    if(!onDocs()||!window.DocsEngine||typeof DocsEngine.render!=="function") return false;
+    var vs=document.getElementById("view-surface"); if(!vs) return false;
+    var h=String(vs.innerHTML||"");
+    if(h.indexOf('id="dc-body"')>-1 && h.indexOf("surf-grid")<0) return true; // real register already live
+    try{ DocsEngine.render(); }catch(e){}
+    return true;
+  }
+  function kick(){ var d=[60,350,1000]; for(var i=0;i<d.length;i++) setTimeout(ensure,d[i]); }
+  if(typeof window.addEventListener==="function"){
+    window.addEventListener("hashchange",kick);
+    document.addEventListener("click",function(ev){ var nb=ev.target&&ev.target.closest?ev.target.closest('.navbtn[data-view="documents"]'):null; if(nb) kick(); },true);
+  }
+  kick();
+  window.LifeOSDocsFix={ ensure:ensure, onDocs:onDocs };
+})();
+
+/* ====================================================================
+   Block 68 — AI Studio: connect a real model (owner sweep 2026-07-02:
+   "AI Studio doesn't seem to work"). ROOT CAUSE: the base assistant
+   only ever answered from a canned local fallback while its own copy
+   said "Connect the model" — and no connect UI existed anywhere.
+   FIX: window.LifeOSModel —
+   · key management: user-supplied Anthropic API key, stored ONLY in
+     localStorage ("lifeos.aikey", this device) — NEVER in synced
+     state, never logged, masked in UI (disclosed in Privacy Policy);
+   · a status chip in the AI Studio panel: "○ Connect model" ⇄
+     "● claude-sonnet-5" — opens a connect/disconnect modal;
+   · wraps LifeOS_AI.complete (object flag __model68): with a key,
+     messages go browser→Anthropic (messages API, direct-browser
+     header) with a compact truthful app-context line; the reply is
+     formatted by the app's own md(). No key, or any error ⇒ graceful
+     degrade to the original local answer (with a quiet note), so the
+     assistant NEVER dead-ends. send()'s native UX (busy state, thread,
+     input clearing) is untouched.
+   ==================================================================== */
+(function(){
+  var KEY="lifeos.aikey", MODEL="claude-sonnet-5";
+  var SYS="You are LifeOS Studio, the in-app assistant of a personal life-management web app. Be concise and concrete. Use short bullet lines starting with • when listing; plain sentences otherwise; no headings, no markdown symbols. Ground every answer in the provided app context; if the context lacks the data, say so plainly and suggest where in the app to add it. Never give medical, financial, or legal advice — suggest a qualified professional instead.";
+  function key(){ try{ return localStorage.getItem(KEY)||""; }catch(e){ return ""; } }
+  function connected(){ return !!key(); }
+  function masked(){ var k=key(); return k?("sk-…"+k.slice(-4)):""; }
+  function setKey(k){ k=String(k||"").trim(); try{ if(k) localStorage.setItem(KEY,k); else localStorage.removeItem(KEY); }catch(e){} chip(); return connected(); }
+  function ctxText(){
+    try{
+      var s=window.LifeOS.get(), t=s.tasks||[], td=new Date().toISOString().slice(0,10);
+      var open=0, doing=0, over=0, mits=[];
+      for(var i=0;i<t.length;i++){ var x=t[i]; if(x.status!=="done"){ open++; if(x.status==="doing") doing++; if(x.due&&x.due<td) over++; if(x.mit&&mits.length<3) mits.push(x.title); } }
+      var g=(s.goals||[]).length, p=(s.people||[]).length;
+      return "App context — open tasks: "+open+" ("+doing+" in motion, "+over+" past due); MITs: "+(mits.join("; ")||"none set")+"; goals: "+g+"; people tracked: "+p+"; current view: "+(String(location.hash||"").replace("#/","")||"today")+".";
+    }catch(e){ return "App context unavailable."; }
+  }
+  function askModel(prompt){
+    var k=key(); if(!k) return Promise.reject(new Error("no key"));
+    return fetch("https://api.anthropic.com/v1/messages",{ method:"POST",
+      headers:{ "content-type":"application/json","x-api-key":k,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true" },
+      body:JSON.stringify({ model:MODEL, max_tokens:700, system:SYS,
+        messages:[{role:"user",content:ctxText()+"\n\nOwner's message: "+String(prompt||"")}] })
+    }).then(function(r){
+      if(!r.ok) return r.json().then(function(j){ throw new Error((j&&j.error&&j.error.message)||("HTTP "+r.status)); },
+                                     function(){ throw new Error("HTTP "+r.status); });
+      return r.json();
+    }).then(function(j){ var txt=j&&j.content&&j.content[0]&&j.content[0].text; if(!txt) throw new Error("empty reply"); return txt; });
+  }
+  var CSS='#ai-studio{position:relative}'
+    +'#lo-model-chip{position:absolute;top:10px;right:34px;z-index:5;font-family:var(--mono,monospace);font-size:9.5px;font-weight:700;letter-spacing:.06em;padding:3px 10px;border-radius:999px;cursor:pointer;border:1px solid var(--line-2,rgba(255,255,255,.18));background:transparent;color:var(--fg-3,#8a8aa3)}'
+    +'#lo-model-chip.on{color:var(--good,#5fb98a);border-color:color-mix(in srgb,var(--good,#5fb98a) 45%,transparent);background:color-mix(in srgb,var(--good,#5fb98a) 10%,transparent)}'
+    +'#lo-model-chip:active{filter:brightness(1.2)}'
+    +'#lo-mdl input[type="password"],#lo-mdl input[type="text"]{width:100%;box-sizing:border-box;margin:10px 0 0;padding:9px 12px;border-radius:9px;border:1px solid var(--line,rgba(255,255,255,.2));background:transparent;color:inherit;font-size:13px;font-family:var(--mono,monospace)}'
+    +'#lo-mdl .lo-pw-show{display:flex;align-items:center;gap:7px;font-size:11.5px;opacity:.75;margin:10px 0 4px;cursor:pointer}#lo-mdl .lo-pw-show input{width:auto;margin:0}'
+    +'#lo-mdl .lo-mdl-st{font-size:11.5px;opacity:.7;margin:2px 0 8px}';
+  function css(){ var el=document.getElementById("lo-model-css");
+    if(el){ if(el.textContent!==CSS) try{ el.textContent=CSS; }catch(e){} }
+    else if(document.head||document.documentElement){ el=document.createElement("style"); el.id="lo-model-css"; el.textContent=CSS; (document.head||document.documentElement).appendChild(el); } }
+  function chip(){
+    css();
+    var panel=document.getElementById("ai-studio"); if(!panel||!panel.insertAdjacentHTML) return;
+    var c=document.getElementById("lo-model-chip");
+    if(!c){ try{ panel.insertAdjacentHTML("afterbegin",'<button id="lo-model-chip" type="button" aria-label="Model connection"></button>'); }catch(e){ return; }
+      c=document.getElementById("lo-model-chip"); if(c) c.onclick=openModal; }
+    if(c){ var on=connected(); c.className=on?"on":""; c.textContent=on?("● "+MODEL):"○ Connect model"; c.title=on?("Connected ("+masked()+") — click to manage"):"Connect your Anthropic API key for real answers"; }
+  }
+  function openModal(){
+    css(); var old=document.getElementById("lo-policy"); if(old&&old.remove) try{ old.remove(); }catch(e){}
+    var m=document.createElement("div"); m.id="lo-policy"; m.setAttribute("role","dialog"); m.setAttribute("aria-modal","true"); m.setAttribute("aria-label","Connect model");
+    var on=connected();
+    m.innerHTML='<div class="lo-pcard" id="lo-mdl"><h3>AI Studio · model connection</h3>'
+      +'<div class="lo-mdl-st">'+(on?("Connected — <b>"+MODEL+"</b> ("+masked()+")"):"Not connected — the assistant answers from local context only.")+'</div>'
+      +'<p>Paste your Anthropic API key to get real answers. The key lives only in this browser (device storage), is never synced to your cloud state, and each message goes directly from your browser to Anthropic — nothing passes through LifeOS servers. Disclosed in the Privacy Policy.</p>'
+      +'<input id="lo-mdl-k" type="password" autocomplete="off" placeholder="sk-ant-…" aria-label="Anthropic API key">'
+      +'<label class="lo-pw-show"><input id="lo-mdl-s" type="checkbox"> Show key</label>'
+      +'<div class="lo-pw-err" id="lo-mdl-err"></div>'
+      +'<div class="lo-pbtns"><button id="lo-mdl-go">'+(on?"Update key":"Connect")+'</button>'
+      +(on?'<button class="danger" id="lo-mdl-off">Disconnect</button>':'')
+      +'<button id="lo-mdl-no">Cancel</button></div></div>';
+    (document.body||document.documentElement).appendChild(m);
+    m.onclick=function(ev){ if(ev&&ev.target===m) try{ m.remove(); }catch(e){} };
+    var inp=m.querySelector("#lo-mdl-k"), sh=m.querySelector("#lo-mdl-s"), go=m.querySelector("#lo-mdl-go"),
+        off=m.querySelector("#lo-mdl-off"), no=m.querySelector("#lo-mdl-no"), err=m.querySelector("#lo-mdl-err");
+    if(no) no.onclick=function(){ try{ m.remove(); }catch(e){} };
+    if(sh) sh.onchange=function(){ try{ inp.type=sh.checked?"text":"password"; }catch(e){} };
+    if(off) off.onclick=function(){ setKey(""); try{ m.remove(); }catch(e){} };
+    if(go) go.onclick=function(){ var v=(inp&&inp.value||"").trim();
+      if(!/^sk-/.test(v)){ if(err) err.textContent="That doesn’t look like an Anthropic key (sk-…)."; return; }
+      setKey(v); try{ m.remove(); }catch(e){} };
+    if(inp&&inp.addEventListener) inp.addEventListener("keydown",function(ev){ if(ev.key==="Enter"&&go){ ev.preventDefault(); go.onclick(); } if(ev.key==="Escape") try{ m.remove(); }catch(e){} });
+    try{ inp.focus(); }catch(e){}
+  }
+  function install(){
+    css(); chip();
+    var A=window.LifeOS_AI; if(!A||typeof A.complete!=="function") return false;
+    if(A.__model68) return true;
+    var base=A.complete.bind(A);
+    A.complete=function(prompt){
+      if(!connected()) return base(prompt);
+      var pr; try{ pr=askModel(prompt); }catch(e){ pr=Promise.reject(e); }
+      return pr.then(
+        function(txt){ return (typeof A.md==="function")?A.md(txt):txt; },
+        function(err){ return Promise.resolve(base(prompt)).then(function(f){
+          return f+'<br><span style="opacity:.6;font-size:11px">(model unreachable — local answer · '+String((err&&err.message)||err).replace(/[<>&"]/g,"").slice(0,80)+')</span>'; }); }
+      );
+    };
+    A.__model68=true;
+    if(typeof A.renderThread==="function"&&!A.__chip68){ var brt=A.renderThread.bind(A);
+      A.renderThread=function(){ var r=brt.apply(this,arguments); try{ chip(); }catch(e){} return r; };
+      A.__chip68=true; }
+    return true;
+  }
+  window.LifeOSModel={ MODEL:MODEL, connected:connected, masked:masked, setKey:setKey, ctxText:ctxText, askModel:askModel, install:install, openModal:openModal, chip:chip, SYS:SYS };
+  var __ms=[200,700,1800,3200]; for(var __mi=0;__mi<__ms.length;__mi++) setTimeout(install,__ms[__mi]);
+  var __miv=setInterval(function(){ if(install()) clearInterval(__miv); },3000);
+  if(typeof window.addEventListener==="function") window.addEventListener("hashchange",function(){ setTimeout(chip,150); });
+  if(document.readyState!=="loading") install();
 })();
 
 
