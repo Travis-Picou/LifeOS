@@ -4415,6 +4415,162 @@
 })();
 
 /* ====================================================================
+   Block 69 — Cash Flow MOMENTUM band (owner request 2026-07-02:
+   "soccer momentum charts"). The duel: money-in vs money-out as
+   opposing smoothed flow areas around a centerline — inflow tide
+   above (--good), bill surges below (--bad) — with event dots for
+   significant bills (goal-dot DNA, r ∝ √amount), month grid, and a
+   "today" marker. HONEST DATA ONLY: outflow is day-precise from real
+   household bills (MV2._data.BILLS: amount/due-day/owner); income is
+   known monthly-per-source (no paydays recorded), so it renders as a
+   steady tide and the caption says so — set state.incomePaydays =
+   {sourceName:[days]} and the tide upgrades to real payday surges.
+   Controls: scope (This month | Year) + owner lens (Both/Travis/Tan),
+   both live; tap a dot pins a tooltip, tap again clears. Injected
+   into Money → Cash Flow above Block 56's spectrum by wrapping
+   MoneyEngine.render OUTERMOST (object flag — no rewrap cascade).
+   No hover transforms; ensureCSS pattern. API: window.LifeOSFlowMo.
+   ==================================================================== */
+(function(){
+  var E=function(s){ return (''+(s==null?'':s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+  var SCOPE="month", OWNER="Both", DOT_MIN=300;
+  function data(){ var D=(window.MV2&&window.MV2._data)||{}; return { inc:D.INCOME||[], bills:D.BILLS||[] }; }
+  function ownerOk(o){ return OWNER==="Both"||!o||o==="Joint"||o===OWNER; }
+  function money(n){ n=Math.round(+n||0); return "$"+String(n).replace(/\B(?=(\d{3})+(?!\d))/g,","); }
+  function smooth(a,passes){ var out=a.slice(), p, i;
+    for(p=0;p<(passes||2);p++){ var nxt=out.slice();
+      for(i=0;i<out.length;i++){ var l=out[i-1]!=null?out[i-1]:out[i], r=out[i+1]!=null?out[i+1]:out[i]; nxt[i]=(l+out[i]*2+r)/4; }
+      out=nxt; }
+    return out; }
+  function paydays(s,name){ try{ var p=(s&&s.incomePaydays)||{}; var d=p[name]; return (Array.isArray(d)&&d.length)?d:null; }catch(e){ return null; } }
+  function series(scope){
+    var st; try{ st=window.LifeOS.get(); }catch(e){ st={}; }
+    var d=data(), now=new Date(), N, i;
+    var inc=d.inc.filter(function(x){ return ownerOk(x.o); });
+    var bills=d.bills.filter(function(x){ return ownerOk(x.o); });
+    var incTotal=0; for(i=0;i<inc.length;i++) incTotal+=(+inc[i].m||0);
+    var res={ scope:scope, dots:[], inflow:[], outflow:[], labels:[], todayX:null, steadyIncome:true };
+    if(scope==="month"){
+      N=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+      var inA=new Array(N), outA=new Array(N); for(i=0;i<N;i++){ inA[i]=0; outA[i]=0; }
+      var anyPd=false;
+      for(i=0;i<inc.length;i++){ var pd=paydays(st,inc[i].n);
+        if(pd){ anyPd=true; for(var q=0;q<pd.length;q++){ var dd=Math.max(1,Math.min(N,+pd[q]||1)); inA[dd-1]+=(+inc[i].m||0)/pd.length; } }
+        else { for(var q2=0;q2<N;q2++) inA[q2]+=(+inc[i].m||0)/N; } }
+      res.steadyIncome=!anyPd;
+      for(i=0;i<bills.length;i++){ var b=bills[i], day=Math.max(1,Math.min(N,+b.d||1)), amt=+b.a||0;
+        outA[day-1]+=amt;
+        if(amt>=DOT_MIN) res.dots.push({x:day-1,amt:amt,label:E(b.n||"Bill")+" · "+money(amt)+" · day "+day,cat:b.c||""}); }
+      res.inflow=smooth(inA,2); res.outflow=smooth(outA,2);
+      for(i=0;i<N;i++) res.labels.push((i%5===4||i===0)?String(i+1):"");
+      res.todayX=now.getDate()-1;
+    } else {
+      N=48; // 12 months × 4 week-slots
+      var inY=new Array(N), outY=new Array(N); for(i=0;i<N;i++){ inY[i]=0; outY[i]=0; }
+      for(var m=0;m<12;m++){
+        for(i=0;i<4;i++) inY[m*4+i]+=incTotal/4;
+        for(i=0;i<bills.length;i++){ var b2=bills[i], amt2=+b2.a||0, slot=Math.min(3,Math.floor(((+b2.d||1)-1)/7.75));
+          outY[m*4+slot]+=amt2;
+          if(amt2>=1000 && m%3===0) res.dots.push({x:m*4+slot,amt:amt2,label:E(b2.n||"Bill")+" · "+money(amt2)+"/mo",cat:b2.c||""}); } }
+      res.inflow=smooth(inY,2); res.outflow=smooth(outY,2);
+      var MN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      for(i=0;i<N;i++) res.labels.push(i%4===0?MN[i/4]:"");
+      res.todayX=now.getMonth()*4+Math.min(3,Math.floor((now.getDate()-1)/7.75));
+    }
+    return res;
+  }
+  function svg(sr){
+    var W=720,H=190,MID=H/2,PADX=8,N=sr.inflow.length,i;
+    var mx=1; for(i=0;i<N;i++){ if(sr.inflow[i]>mx)mx=sr.inflow[i]; if(sr.outflow[i]>mx)mx=sr.outflow[i]; }
+    var xs=function(i){ return PADX+(i/(N-1))*(W-2*PADX); };
+    var amp=(H/2)-16;
+    function area(arr,up){ var d="M "+xs(0)+" "+MID;
+      for(i=0;i<N;i++){ var v=(arr[i]/mx)*amp; d+=" L "+xs(i).toFixed(1)+" "+(up?(MID-v):(MID+v)).toFixed(1); }
+      d+=" L "+xs(N-1)+" "+MID+" Z"; return d; }
+    var out='<svg id="lo-fm-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="Cash flow momentum">';
+    for(i=0;i<N;i++){ if(sr.labels[i]) out+='<line x1="'+xs(i).toFixed(1)+'" y1="10" x2="'+xs(i).toFixed(1)+'" y2="'+(H-14)+'" class="lo-fm-grid"/>'; }
+    out+='<line x1="'+PADX+'" y1="'+MID+'" x2="'+(W-PADX)+'" y2="'+MID+'" class="lo-fm-mid"/>';
+    out+='<path d="'+area(sr.inflow,true)+'" class="lo-fm-in"/>';
+    out+='<path d="'+area(sr.outflow,false)+'" class="lo-fm-out"/>';
+    if(sr.todayX!=null) out+='<line x1="'+xs(sr.todayX).toFixed(1)+'" y1="6" x2="'+xs(sr.todayX).toFixed(1)+'" y2="'+(H-10)+'" class="lo-fm-now"/>';
+    for(i=0;i<sr.dots.length;i++){ var dt=sr.dots[i], r=Math.max(3.2,Math.min(9,Math.sqrt(dt.amt)/8));
+      var v=(sr.outflow[dt.x]/mx)*amp;
+      out+='<circle cx="'+xs(dt.x).toFixed(1)+'" cy="'+(MID+Math.min(v+2,amp)).toFixed(1)+'" r="'+r.toFixed(1)+'" class="lo-fm-dot" data-tip="'+dt.label+'" tabindex="0" aria-label="'+dt.label+'"/>'; }
+    for(i=0;i<N;i++){ if(sr.labels[i]) out+='<text x="'+xs(i).toFixed(1)+'" y="'+(H-2)+'" class="lo-fm-lb">'+sr.labels[i]+'</text>'; }
+    out+='</svg>'; return out;
+  }
+  var CSS='#lo-flowmo{border:1px solid var(--line-1,rgba(255,255,255,.12));border-radius:14px;background:var(--bg-2,transparent);box-shadow:var(--e-1,none);padding:14px 16px 8px;margin:0 0 14px}'
+    +'#lo-flowmo .lo-fm-hd{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px}'
+    +'#lo-flowmo .lo-fm-t{font-family:var(--mono,monospace);font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3,#8a8aa3);margin-right:auto}'
+    +'#lo-flowmo .lo-fm-hd button{font-size:10.5px;font-weight:700;padding:4px 11px;border-radius:999px;border:1px solid var(--line-2,rgba(255,255,255,.16));background:transparent;color:var(--fg-3,#8a8aa3);cursor:pointer}'
+    +'#lo-flowmo .lo-fm-hd button.on{color:var(--fg,--fg-1);background:color-mix(in srgb,var(--accent,#888) 16%,transparent);border-color:color-mix(in srgb,var(--accent,#888) 42%,transparent)}'
+    +'#lo-flowmo .lo-fm-hd button:active{filter:brightness(1.2)}'
+    +'#lo-fm-svg{width:100%;height:190px;display:block}'
+    +'#lo-fm-svg .lo-fm-grid{stroke:color-mix(in srgb,var(--fg-1,#fff) 7%,transparent);stroke-width:1}'
+    +'#lo-fm-svg .lo-fm-mid{stroke:color-mix(in srgb,var(--fg-1,#fff) 22%,transparent);stroke-width:1;stroke-dasharray:1 3}'
+    +'#lo-fm-svg .lo-fm-in{fill:color-mix(in srgb,var(--good,#5fb98a) 30%,transparent);stroke:var(--good,#5fb98a);stroke-width:1.4}'
+    +'#lo-fm-svg .lo-fm-out{fill:color-mix(in srgb,var(--bad,#ff5d6c) 26%,transparent);stroke:var(--bad,#ff5d6c);stroke-width:1.4}'
+    +'#lo-fm-svg .lo-fm-now{stroke:var(--gold,#ffb02e);stroke-width:1.4;stroke-dasharray:3 3}'
+    +'#lo-fm-svg .lo-fm-dot{fill:var(--bad,#ff5d6c);stroke:var(--bg-2,#111);stroke-width:1.4;cursor:pointer}'
+    +'#lo-fm-svg .lo-fm-dot:focus-visible{outline:2px solid var(--accent,#888);outline-offset:2px}'
+    +'#lo-fm-svg .lo-fm-lb{fill:var(--fg-4,#666);font-size:8.5px;font-family:var(--mono,monospace);text-anchor:middle}'
+    +'#lo-flowmo .lo-fm-tip{font-family:var(--mono,monospace);font-size:11px;color:var(--fg-1,#eee);background:color-mix(in srgb,var(--bg-1,#000) 88%,transparent);border:1px solid var(--line-2,rgba(255,255,255,.2));border-radius:8px;padding:5px 10px;margin:6px 0 2px;display:none}'
+    +'#lo-flowmo .lo-fm-tip.on{display:inline-block}'
+    +'#lo-flowmo .lo-fm-cap{font-size:10.5px;color:var(--fg-4,#777);margin:6px 0 4px;line-height:1.45}';
+  function ensure(){ var el=document.getElementById("lo-flowmo-css");
+    if(el){ if(el.textContent!==CSS) try{ el.textContent=CSS; }catch(e){} }
+    else if(document.head||document.documentElement){ el=document.createElement("style"); el.id="lo-flowmo-css"; el.textContent=CSS; (document.head||document.documentElement).appendChild(el); } }
+  function html(){
+    var sr=series(SCOPE);
+    return '<div id="lo-flowmo"><div class="lo-fm-hd"><span class="lo-fm-t">Cash Flow · Momentum</span>'
+      +'<button type="button" data-sc="month" aria-pressed="'+(SCOPE==="month")+'" class="'+(SCOPE==="month"?"on":"")+'">This month</button>'
+      +'<button type="button" data-sc="year" aria-pressed="'+(SCOPE==="year")+'" class="'+(SCOPE==="year"?"on":"")+'">Year</button>'
+      +'<span style="width:8px"></span>'
+      +["Both","Travis","Tan"].map(function(o){ return '<button type="button" data-ow="'+o+'" aria-pressed="'+(OWNER===o)+'" class="'+(OWNER===o?"on":"")+'">'+o+'</button>'; }).join("")
+      +'</div>'+svg(sr)
+      +'<div class="lo-fm-tip" id="lo-fm-tip" role="status"></div>'
+      +'<div class="lo-fm-cap">Green tide = income'+(sr.steadyIncome?' (steady flow — add <b>paydays</b> in settings to see real pay surges)':' (your configured paydays)')+' · red surge = bills landing (dots = $'+DOT_MIN+'+, sized by amount) · gold dashes = today.</div></div>';
+  }
+  function bind(host){
+    var bs=host.querySelectorAll("#lo-flowmo .lo-fm-hd button"), i;
+    for(i=0;i<bs.length;i++){ bs[i].onclick=(function(b){ return function(){
+      var sc=b.getAttribute("data-sc"), ow=b.getAttribute("data-ow");
+      if(sc) SCOPE=sc; if(ow) OWNER=ow; paint(); }; })(bs[i]); }
+    var dots=host.querySelectorAll(".lo-fm-dot"), tip=host.querySelector("#lo-fm-tip");
+    for(i=0;i<dots.length;i++){ dots[i].onclick=(function(d){ return function(ev){ if(ev&&ev.stopPropagation) ev.stopPropagation();
+      if(!tip) return; var t=d.getAttribute("data-tip")||"";
+      if(tip.textContent===t&&tip.className.indexOf("on")>-1){ tip.className="lo-fm-tip"; tip.textContent=""; }
+      else { tip.textContent=t; tip.className="lo-fm-tip on"; } }; })(dots[i]); }
+  }
+  function paint(){
+    ensure();
+    var ME=window.MoneyEngine; if(!ME||ME.tab!=="cashflow") return false;
+    var vs=document.getElementById("view-surface"); if(!vs||!vs.querySelector) return false;
+    var old=document.getElementById("lo-flowmo"); if(old&&old.remove) try{ old.remove(); }catch(e){}
+    var head=vs.querySelector(".surf-head");
+    try{
+      if(head&&head.insertAdjacentHTML) head.insertAdjacentHTML("afterend",html());
+      else vs.insertAdjacentHTML("afterbegin",html());
+      bind(vs); return true;
+    }catch(e){ return false; }
+  }
+  function install(){
+    ensure();
+    var ME=window.MoneyEngine; if(!ME||typeof ME.render!=="function") return false;
+    if(ME.__flowmo69) return true;
+    var base=ME.render.bind(ME);
+    ME.render=function(){ var r=base.apply(this,arguments); try{ paint(); }catch(e){} return r; };
+    ME.__flowmo69=true; return true;
+  }
+  window.LifeOSFlowMo={ series:series, svg:svg, html:html, paint:paint, install:install, ensure:ensure,
+    setScope:function(s){ SCOPE=(s==="year")?"year":"month"; return SCOPE; },
+    setOwner:function(o){ OWNER=(o==="Travis"||o==="Tan")?o:"Both"; return OWNER; }, CSS:CSS };
+  var __fs=[250,800,2000,3400]; for(var __fi=0;__fi<__fs.length;__fi++) setTimeout(install,__fs[__fi]);
+  var __fiv=setInterval(function(){ if(install()) clearInterval(__fiv); },3000);
+  if(document.readyState!=="loading") install();
+})();
+
+/* ====================================================================
    Block 68 — AI Studio: connect a real model (owner sweep 2026-07-02:
    "AI Studio doesn't seem to work"). ROOT CAUSE: the base assistant
    only ever answered from a canned local fallback while its own copy
