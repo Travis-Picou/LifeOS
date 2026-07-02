@@ -71,6 +71,7 @@
     if(s.schema!==1) s.schema=1;
     if(!s.profile||typeof s.profile!=="object") s.profile={};
     s.profile.onboarded=true;            // give a clean slate, don't trap mid-session
+    s.profile.name="";                   // never inherit this browser's owner name (TC-A20)
     // ---- normalizer guards (so demo content is NOT re-seeded) ----
     s.healthV2=true;                     // healthV2Normalize: if(s.healthV2) return
     if(!s.career||typeof s.career!=="object") s.career={};
@@ -95,19 +96,33 @@
   window.LifeOSClean=cleanState; // exposed for testing/diagnostics
   function startSync(c,uid,seed){
     if(syncing) return; syncing=true;
-    if(seed){ applyCloud(seed); c.rpc("lifeos_save",{p_state:seed}); }
-    else c.from("lifeos_state").select("state").eq("user_id",uid).maybeSingle().then(function(r){
-      var cloud=r && r.data && r.data.state;
-      if(cloud && cloud.schema===1){ applyCloud(cloud); }
-      else {
-        // brand-new account: never push this browser's demo/owner data — start CLEAN.
-        var base=null; try{ base=(window.LifeOS&&window.LifeOS.get)?window.LifeOS.get():JSON.parse(localStorage.getItem("lifeos.v1")||"null"); }catch(e){}
-        var fresh=cleanState(base||{});
-        applyCloud(fresh);
-        try{ c.rpc("lifeos_save",{p_state:fresh}); lastPushed=JSON.stringify(fresh); }catch(e){}
-      }
-    });
+    // SAFETY (FR-1.6/1.7 regression guard, TC-A07/A19/A20): never push this
+    // browser's localStorage to the account until the first cloud pull (or
+    // clean provision / seed) has SETTLED. Otherwise a slow or failed first
+    // SELECT lets the 4s loop leak owner/demo data into a fresh account.
+    // A SELECT error also must NOT be treated as "no row" — that would
+    // blind-provision a clean state over an existing user's data. Retry.
+    var ready=false, pulling=false;
+    function pull(){
+      if(pulling) return; pulling=true;
+      c.from("lifeos_state").select("state").eq("user_id",uid).maybeSingle().then(function(r){
+        if(r && r.error){ pulling=false; return; } // transient error: retry next tick, don't provision
+        var cloud=r && r.data && r.data.state;
+        if(cloud && cloud.schema===1){ applyCloud(cloud); }
+        else {
+          // brand-new account: never push this browser's demo/owner data — start CLEAN.
+          var base=null; try{ base=(window.LifeOS&&window.LifeOS.get)?window.LifeOS.get():JSON.parse(localStorage.getItem("lifeos.v1")||"null"); }catch(e){}
+          var fresh=cleanState(base||{});
+          applyCloud(fresh);
+          try{ c.rpc("lifeos_save",{p_state:fresh}); lastPushed=JSON.stringify(fresh); }catch(e){}
+        }
+        ready=true; pulling=false;
+      }).catch(function(){ pulling=false; });
+    }
+    if(seed){ applyCloud(seed); c.rpc("lifeos_save",{p_state:seed}); ready=true; }
+    else pull();
     setInterval(function(){
+      if(!ready){ pull(); return; }
       try{ var cur=localStorage.getItem("lifeos.v1")||""; if(cur && cur!==lastPushed){ var obj=JSON.parse(cur); c.rpc("lifeos_save",{p_state:obj}).then(function(r){ if(!r.error) lastPushed=cur; }); } }catch(e){}
     },4000);
     window.LifeOSAuth={ signOut:function(){ getClient().then(function(c){ c.auth.signOut().then(function(){ try{ sessionStorage.clear(); }catch(e){} location.reload(); }); }); } };
@@ -3693,7 +3708,7 @@
 })();
 
 
-/* deploy-nonce 1782954738 */</script>
+</script>
 
   <div id="__bundler_thumbnail">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
