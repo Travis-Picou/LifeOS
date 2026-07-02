@@ -4559,7 +4559,10 @@
     var ME=window.MoneyEngine; if(!ME||typeof ME.render!=="function") return false;
     if(ME.__flowmo69) return true;
     var base=ME.render.bind(ME);
-    ME.render=function(){ var r=base.apply(this,arguments); try{ paint(); }catch(e){} return r; };
+    // Block 56's cashflow painter finishes async — re-paint on a settle burst
+    ME.render=function(){ var r=base.apply(this,arguments);
+      try{ paint(); var dd=[120,450,1100]; for(var i2=0;i2<dd.length;i2++) setTimeout(paint,dd[i2]); }catch(e){}
+      return r; };
     ME.__flowmo69=true; return true;
   }
   window.LifeOSFlowMo={ series:series, svg:svg, html:html, paint:paint, install:install, ensure:ensure,
