@@ -4383,8 +4383,20 @@
    ==================================================================== */
 (function(){
   function onDocs(){ try{ return String(location.hash||"").indexOf("documents")>-1; }catch(e){ return false; } }
+  // ROOT CAUSE #2 (the actual dead click): the bundle's newest docs
+  // generation renders .dcc cards whose heads call
+  // DocsEngine.toggleCard(id) — a method the bundle NEVER DEFINED.
+  // Every click threw "toggleCard is not a function". Shim it against
+  // the generation's own expanded-state design.
+  function wire(){
+    var D=window.DocsEngine; if(!D) return false;
+    if(typeof D.toggleCard==="function") return true;
+    D.toggleCard=function(id){ try{ this.expanded=this.expanded||{}; this.expanded[id]=!this.expanded[id]; this.render(); }catch(e){} };
+    return true;
+  }
   function ensure(){
     if(!onDocs()||!window.DocsEngine||typeof DocsEngine.render!=="function") return false;
+    wire();
     var vs=document.getElementById("view-surface"); if(!vs) return false;
     var h=String(vs.innerHTML||"");
     if(h.indexOf('id="dc-body"')>-1 && h.indexOf("surf-grid")<0) return true; // real register already live
@@ -4396,8 +4408,10 @@
     window.addEventListener("hashchange",kick);
     document.addEventListener("click",function(ev){ var nb=ev.target&&ev.target.closest?ev.target.closest('.navbtn[data-view="documents"]'):null; if(nb) kick(); },true);
   }
+  var __ds=[300,1200,3000]; for(var __di=0;__di<__ds.length;__di++) setTimeout(wire,__ds[__di]);
+  var __div=setInterval(function(){ if(wire()) clearInterval(__div); },3000);
   kick();
-  window.LifeOSDocsFix={ ensure:ensure, onDocs:onDocs };
+  window.LifeOSDocsFix={ ensure:ensure, onDocs:onDocs, wire:wire };
 })();
 
 /* ====================================================================
