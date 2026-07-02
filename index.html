@@ -52,7 +52,9 @@
       +'#lifeos-gate input{width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:12px 14px;color:#f4efe6;font-size:14px;margin-bottom:10px;outline:none}'
       +'#lifeos-gate input:focus{border-color:#e0552b;background:rgba(255,255,255,.09)}'
       +'#lg-go{width:100%;background:linear-gradient(180deg,#e8663d,#e0552b);color:#fff;border:none;border-radius:11px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;box-shadow:0 8px 22px rgba(224,85,43,.35)}#lg-go:hover{filter:brightness(1.06)}#lg-go:disabled{opacity:.7;cursor:default}'
-      +'.lg-err{font-size:12px;min-height:15px;margin-top:10px;color:#ff8a80}.lg-toggle{color:#8c9bb5;font-size:12px;margin-top:16px}.lg-toggle a{color:#e0552b;cursor:pointer;text-decoration:none}.lg-toggle a:hover{text-decoration:underline}';
+      +'.lg-err{font-size:12px;min-height:15px;margin-top:10px;color:#ff8a80}.lg-toggle{color:#8c9bb5;font-size:12px;margin-top:16px}.lg-toggle a{color:#e0552b;cursor:pointer;text-decoration:none}.lg-toggle a:hover{text-decoration:underline}'
+      +'.lg-ck{display:flex;gap:8px;align-items:flex-start;text-align:left;color:#8c9bb5;font-size:11.5px;line-height:1.45;margin:2px 0 8px}.lg-ck input{width:auto;margin:2px 0 0;accent-color:#e0552b}.lg-ck a{color:#e0552b;cursor:pointer;text-decoration:none}'
+      +'.lg-links{color:#5d6f8f;font-size:11px;margin-top:14px}.lg-links a{color:#8c9bb5;cursor:pointer;text-decoration:none}.lg-links a:hover{color:#e0552b}';
     document.head.appendChild(st);
   }
 
@@ -113,13 +115,14 @@
           // brand-new account: never push this browser's demo/owner data — start CLEAN.
           var base=null; try{ base=(window.LifeOS&&window.LifeOS.get)?window.LifeOS.get():JSON.parse(localStorage.getItem("lifeos.v1")||"null"); }catch(e){}
           var fresh=cleanState(base||{});
+          if(window.__loConsent&&!fresh.consent) fresh.consent=window.__loConsent; // consent record (v+timestamp)
           applyCloud(fresh);
           try{ c.rpc("lifeos_save",{p_state:fresh}); lastPushed=JSON.stringify(fresh); }catch(e){}
         }
         ready=true; pulling=false;
       }).catch(function(){ pulling=false; });
     }
-    if(seed){ applyCloud(seed); c.rpc("lifeos_save",{p_state:seed}); ready=true; }
+    if(seed){ if(window.__loConsent&&!seed.consent) seed.consent=window.__loConsent; applyCloud(seed); c.rpc("lifeos_save",{p_state:seed}); ready=true; }
     else pull();
     setInterval(function(){
       if(!ready){ pull(); return; }
@@ -136,10 +139,17 @@
       +'<div class="lg-sub">'+(mode==="up"?"Create your account — your operating system syncs securely to the cloud.":"Welcome back. Sign in to your operating system.")+'</div>'
       +'<input id="lg-em" type="email" autocomplete="email" placeholder="Email">'
       +'<input id="lg-pw" type="password" autocomplete="'+(mode==="up"?"new-password":"current-password")+'" placeholder="Password">'
+      +(mode==="up"
+        ?'<label class="lg-ck"><input id="lg-age" type="checkbox"> <span>I\u2019m 18 or older and accept the <a id="lg-tos2">Terms</a> &amp; <a id="lg-pol2">Privacy Policy</a>.</span></label>'
+         +'<label class="lg-ck"><input id="lg-sp" type="checkbox"> <span>I consent to LifeOS storing the health, values and other personal data I choose to enter, synced to my private cloud row.</span></label>'
+        :'')
       +'<button id="lg-go">'+(mode==="up"?"Create account":"Sign in")+'</button>'
       +'<div id="lg-err" class="lg-err"></div>'
       +'<div class="lg-toggle">'+(mode==="up"?'Already have an account? <a id="lg-sw">Sign in</a>':'New here? <a id="lg-sw">Create an account</a> \u00b7 <a id="lg-fp">Forgot password?</a>')+'</div>'
-      +'<div class="lg-toggle" style="margin-top:6px">Have a LifeOS export? <a id="lg-imp">Import it</a></div>';
+      +'<div class="lg-toggle" style="margin-top:6px">Have a LifeOS export? <a id="lg-imp">Import it</a></div>'
+      +'<div class="lg-links"><a id="lg-pol">Privacy Policy</a> \u00b7 <a id="lg-tos">Terms of Service</a></div>';
+    ["lg-pol","lg-pol2"].forEach(function(pid){ var a=card.querySelector("#"+pid); if(a) a.onclick=function(){ if(window.LifeOSPolicy) window.LifeOSPolicy.open("privacy"); }; });
+    ["lg-tos","lg-tos2"].forEach(function(pid){ var a=card.querySelector("#"+pid); if(a) a.onclick=function(){ if(window.LifeOSPolicy) window.LifeOSPolicy.open("terms"); }; });
     var em=card.querySelector("#lg-em"), pw=card.querySelector("#lg-pw"), go=card.querySelector("#lg-go"), err=card.querySelector("#lg-err"), sw=card.querySelector("#lg-sw"), imp=card.querySelector("#lg-imp");
     var pending=null;
     try{ em.focus(); }catch(e){}
@@ -164,6 +174,11 @@
       var e=(em.value||"").trim(), p=pw.value||"";
       if(!e||!p){ err.textContent="Enter your email and password."; return; }
       if(mode==="up" && p.length<6){ err.textContent="Password must be at least 6 characters."; return; }
+      if(mode==="up"){
+        var ac=card.querySelector("#lg-age"), sc=card.querySelector("#lg-sp");
+        if(!(ac&&ac.checked)||!(sc&&sc.checked)){ err.textContent="Please confirm you’re 18+ and consent to the data you’ll store."; return; }
+        window.__loConsent={v:"1.0",at:new Date().toISOString(),age18:true,special:true};
+      }
       go.disabled=true; go.textContent=mode==="up"?"Creating…":"Signing in…";
       getClient().then(function(c){
         var op = mode==="up" ? c.auth.signUp({email:e,password:p,options:{emailRedirectTo:((location.origin&&location.origin.indexOf("http")===0)?location.origin:"https://www.lifeopssys.com")}}) : c.auth.signInWithPassword({email:e,password:p});
@@ -3695,10 +3710,10 @@
   function install(){
     css();
     var T=window.Tasks; if(!T||typeof T.render!=='function') return false;
-    if(T.render.__opscards) return true;
+    if(T.__opscards61) return true; // object-level flag: survives later wrappers (no re-wrap cascade)
     var base=T.render.bind(T);
     T.render=function(){ var r=base.apply(this,arguments); try{ if(this.boardMode) enhance(); }catch(e){} return r; };
-    T.render.__opscards=true;
+    T.render.__opscards=true; T.__opscards61=true;
     try{ if(T.boardMode&&(location.hash||'').indexOf('tasks')>-1) enhance(); }catch(e){}
     return true;
   }
@@ -3952,17 +3967,17 @@
   function install(){
     ensure();
     var T=window.Tasks; if(!T||typeof T.render!=='function') return false;
-    if(!T.render.__ops2){ var base=T.render.bind(T);
+    if(!T.__ops2wrapped){ var base=T.render.bind(T);
       T.render=function(){ var r=base.apply(this,arguments); try{ afterRender(); }catch(e){} return r; };
-      T.render.__ops2=true; }
-    if(typeof T.toggleDone==='function'&&!T.toggleDone.__doneAt63){ var bd=T.toggleDone.bind(T);
+      T.render.__ops2=true; T.__ops2wrapped=true; }
+    if(typeof T.toggleDone==='function'&&!T.__doneAt63){ var bd=T.toggleDone.bind(T);
       T.toggleDone=function(id){ var r=bd.apply(this,arguments);
         try{ var s=S(), t=(s.tasks||[]).find?null:null; var arr=s.tasks||[], f=null;
           for(var i=0;i<arr.length;i++){ if(arr[i].id===id){ f=arr[i]; break; } }
           if(f){ var want=(f.status==='done')?new Date().toISOString():null;
             if(!!f.doneAt!==!!want){ f.doneAt=want||undefined; if(!want) delete f.doneAt; window.LifeOS.set(s); } } }catch(e){}
         return r; };
-      T.toggleDone.__doneAt63=true; }
+      T.toggleDone.__doneAt63=true; T.__doneAt63=true; }
     return true;
   }
   window.LifeOSOps2={ ensure:ensure, install:install, narrative:narrative, counts:counts, kpis:kpis,
@@ -3972,6 +3987,305 @@
   var __oiv=setInterval(function(){ if(install()) clearInterval(__oiv); },3000);
   if(typeof window.addEventListener==='function') window.addEventListener('hashchange', function(){ setTimeout(ensure,80); });
   if(document.readyState!=='loading') install();
+})();
+
+/* ====================================================================
+   Block 64 — Privacy, consent & data rights (product-side compliance,
+   closes Compliance Assessment P0s 1–3 + P1 export; PR-C / FR-1.12+).
+   · window.LifeOSPolicy — in-app Privacy Policy + Terms modal (single-
+     file app ⇒ policies ship inside the product), linked from the auth
+     gate (Block 0) and openable anywhere. Esc / veil closes. v1.0.
+   · window.LifeOSPrivacyOps — "Download my data" (schema-1 JSON, the
+     DSAR/portability path) and "Delete account & data" (typed-DELETE
+     confirm ⇒ deletes the user's lifeos_state row under RLS, clears
+     local, signs out). Auth-identity record removal remains an
+     operator step (documented residual — client keys can't admin).
+   · Accounts section gains a "Privacy & data" card exposing both.
+   ==================================================================== */
+(function(){
+  var PV="1.0", PD="July 1, 2026";
+  var PRIV='<h3>Privacy Policy <span class="lo-pv">v'+PV+' · '+PD+'</span></h3>'
+    +'<p><b>What LifeOS stores.</b> Only what you enter: account email, profile & preferences, tasks/goals/projects, finances you type in, health readings and labs, values & beliefs, people and dates, career notes, documents metadata, journal text. No hidden telemetry, no analytics trackers, no ads.</p>'
+    +'<p><b>Where it lives.</b> On this device (browser storage) and in one private database row tied to your account (Supabase, AWS us-east-1), protected by row-level security so only your signed-in session can read or write it. Transport is HTTPS; the database is encrypted at rest.</p>'
+    +'<p><b>Who processes it.</b> Supabase (database & auth), Vercel (hosting/CDN), jsDelivr/Google Fonts (static assets). If you invoke AI features with your own API key, the text you send goes to Anthropic — that is opt-in, per action, and disclosed here.</p>'
+    +'<p><b>Special-category data.</b> Health readings, labs and beliefs/values are stored only because you choose to enter them, under the explicit consent you give at sign-up (recorded with version + timestamp in your own state).</p>'
+    +'<p><b>Your rights.</b> Everything is editable in-app (rectification). <b>Download my data</b> exports your complete state as JSON (access/portability). <b>Delete account & data</b> erases your cloud row and local copy (erasure). Contact the operator for anything else.</p>'
+    +'<p><b>Retention.</b> Your data persists until you delete it. No backups are kept by LifeOS beyond the platform’s standard operational backups.</p>'
+    +'<p><b>Not medical, financial, or legal advice.</b> LifeOS is a personal organizer. Health and money views are informational only.</p>';
+  var TOS='<h3>Terms of Service <span class="lo-pv">v'+PV+' · '+PD+'</span></h3>'
+    +'<p><b>Eligibility.</b> You must be 18 or older. LifeOS is not directed at children and does not knowingly collect their data.</p>'
+    +'<p><b>The service.</b> A personal life-management tool provided as-is, with no uptime or fitness guarantees. Keep your own exports of anything you can’t lose.</p>'
+    +'<p><b>Your content.</b> Yours. LifeOS claims no rights over what you enter and never sells or shares it.</p>'
+    +'<p><b>Acceptable use.</b> Don’t attempt to access other users’ data or disrupt the service. Server-side isolation is enforced; probing it ends your access.</p>'
+    +'<p><b>No professional advice.</b> Nothing in LifeOS constitutes medical, financial, or legal advice.</p>'
+    +'<p><b>Changes.</b> Policies are versioned in-app; continued use after a version bump is acceptance.</p>';
+  var CSS='#lo-policy{position:fixed;inset:0;z-index:2147483601;display:flex;align-items:center;justify-content:center;background:rgba(5,8,18,.66);backdrop-filter:blur(6px);animation:lgIn .22s ease}'
+    +'#lo-policy .lo-pcard{width:620px;max-width:92vw;max-height:82vh;overflow:auto;background:var(--card,#10182b);color:var(--fg,#e8ecf6);border:1px solid var(--line,rgba(255,255,255,.14));border-radius:18px;padding:26px 30px;box-shadow:0 30px 90px rgba(0,0,0,.5)}'
+    +'#lo-policy h3{margin:0 0 12px;font-size:19px;letter-spacing:-.2px}'
+    +'#lo-policy .lo-pv{font-size:10.5px;font-weight:600;opacity:.55;margin-left:8px;letter-spacing:.04em}'
+    +'#lo-policy p{font-size:12.8px;line-height:1.62;margin:0 0 11px;opacity:.92}'
+    +'#lo-policy .lo-px{position:sticky;top:0;float:right;background:transparent;border:1px solid var(--line,rgba(255,255,255,.18));border-radius:9px;color:inherit;font-size:12px;padding:5px 10px;cursor:pointer}'
+    +'#lo-policy .lo-ptabs{display:flex;gap:6px;margin:0 0 14px}'
+    +'#lo-policy .lo-ptabs button{font-size:11px;font-weight:600;padding:5px 12px;border-radius:999px;border:1px solid var(--line,rgba(255,255,255,.16));background:transparent;color:inherit;cursor:pointer;opacity:.7}'
+    +'#lo-policy .lo-ptabs button.on{opacity:1;background:color-mix(in srgb,var(--accent,#e0552b) 18%,transparent);border-color:color-mix(in srgb,var(--accent,#e0552b) 45%,transparent)}'
+    +'.lo-privcard{border:1px solid var(--line,rgba(0,0,0,.12));border-radius:14px;padding:16px 18px;margin-top:14px}'
+    +'.lo-privcard h4{margin:0 0 4px;font-size:13px}'
+    +'.lo-privcard p{margin:0 0 10px;font-size:11.5px;opacity:.75;line-height:1.5}'
+    +'.lo-privcard .lo-pbtns{display:flex;gap:8px;flex-wrap:wrap}'
+    +'.lo-privcard button{font-size:11.5px;font-weight:600;padding:7px 13px;border-radius:9px;cursor:pointer;border:1px solid var(--line,rgba(0,0,0,.16));background:transparent;color:inherit}'
+    +'.lo-privcard button.danger{color:#e5484d;border-color:rgba(229,72,77,.4)}'
+    +'.lo-privcard button.danger:active{background:rgba(229,72,77,.12)}'
+    +'#lo-delc input{width:100%;box-sizing:border-box;margin:10px 0;padding:9px 12px;border-radius:9px;border:1px solid var(--line,rgba(255,255,255,.2));background:transparent;color:inherit;font-size:13px}';
+  function css(){ var el=document.getElementById("lo-policy-css");
+    if(el){ if(el.textContent!==CSS) try{ el.textContent=CSS; }catch(e){} }
+    else if(document.head||document.documentElement){ el=document.createElement("style"); el.id="lo-policy-css"; el.textContent=CSS; (document.head||document.documentElement).appendChild(el); } }
+  function close(){ var m=document.getElementById("lo-policy"); if(m&&m.remove) try{ m.remove(); }catch(e){} }
+  function open(which){
+    css(); close();
+    var m=document.createElement("div"); m.id="lo-policy"; m.setAttribute("role","dialog"); m.setAttribute("aria-modal","true"); m.setAttribute("aria-label","LifeOS policies");
+    var w=(which==="terms")?"terms":"privacy";
+    m.innerHTML='<div class="lo-pcard"><button class="lo-px" aria-label="Close">Close ✕</button>'
+      +'<div class="lo-ptabs"><button data-p="privacy" class="'+(w==="privacy"?"on":"")+'">Privacy</button><button data-p="terms" class="'+(w==="terms"?"on":"")+'">Terms</button></div>'
+      +'<div class="lo-pbody">'+(w==="terms"?TOS:PRIV)+'</div></div>';
+    (document.body||document.documentElement).appendChild(m);
+    m.onclick=function(ev){ if(ev&&ev.target===m) close(); };
+    var x=m.querySelector(".lo-px"); if(x) x.onclick=close;
+    var tb=m.querySelectorAll(".lo-ptabs button");
+    for(var i=0;i<tb.length;i++){ tb[i].onclick=(function(b){ return function(){ open(b.getAttribute("data-p")); }; })(tb[i]); }
+    if(typeof window.addEventListener==="function"){ var esc=function(ev){ if(ev.key==="Escape"){ close(); window.removeEventListener("keydown",esc); } }; window.addEventListener("keydown",esc); }
+    return m;
+  }
+  window.LifeOSPolicy={ open:open, close:close, PRIV:PRIV, TOS:TOS, V:PV, CSS:CSS };
+
+  var SB_URL="https://akdqrtjuhrlplkvhrhqm.supabase.co", SB_KEY="sb_publishable_mnbOHGZUqYpS3rb8O4qVYQ_KIjfWboj";
+  var SB_CDN="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
+  var c64=null;
+  function getClient(){ return new Promise(function(res,rej){
+    function mk(){ if(!c64) c64=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:false,storageKey:"lifeos.auth"}}); res(c64); }
+    if(window.supabase&&window.supabase.createClient) return mk();
+    var s=document.createElement("script"); s.src=SB_CDN; s.onload=mk; s.onerror=function(){ rej(new Error("cdn")); };
+    (document.head||document.documentElement).appendChild(s); }); }
+  function downloadData(){
+    var s; try{ s=(window.LifeOS&&window.LifeOS.get)?window.LifeOS.get():JSON.parse(localStorage.getItem("lifeos.v1")||"{}"); }catch(e){ s={}; }
+    var txt=JSON.stringify(s,null,2);
+    try{ var b=new Blob([txt],{type:"application/json"}); var a=document.createElement("a");
+      a.href=URL.createObjectURL(b); a.download="lifeos-export-"+new Date().toISOString().slice(0,10)+".json";
+      (document.body||document.documentElement).appendChild(a); a.click(); try{ a.remove(); }catch(e){} }catch(e){}
+    return txt.length;
+  }
+  function deleteAccount(confirmText){
+    if(confirmText!=="DELETE") return Promise.resolve("blocked");
+    return getClient().then(function(c){
+      return c.auth.getUser().then(function(u){
+        var uid=u&&u.data&&u.data.user&&u.data.user.id;
+        if(!uid) return "no-session";
+        return c.from("lifeos_state").delete().eq("user_id",uid).then(function(r){
+          if(r&&r.error) return "error:"+r.error.message;
+          try{ localStorage.removeItem("lifeos.v1"); }catch(e){}
+          try{ sessionStorage.clear(); }catch(e){}
+          return c.auth.signOut().then(function(){ try{ location.reload(); }catch(e){} return "deleted"; });
+        });
+      });
+    });
+  }
+  function confirmDelete(){
+    css(); var m=document.createElement("div"); m.id="lo-policy";
+    m.innerHTML='<div class="lo-pcard" id="lo-delc"><h3>Delete account &amp; data</h3>'
+      +'<p>This permanently deletes your cloud state row and clears this device, then signs you out. It cannot be undone. Download your data first if you want a copy.</p>'
+      +'<p>Type <b>DELETE</b> to confirm.</p><input id="lo-del-in" aria-label="Type DELETE to confirm" autocomplete="off">'
+      +'<div class="lo-pbtns"><button class="danger" id="lo-del-go">Delete everything</button><button id="lo-del-no">Cancel</button></div></div>';
+    (document.body||document.documentElement).appendChild(m);
+    var inp=m.querySelector("#lo-del-in"), go=m.querySelector("#lo-del-go"), no=m.querySelector("#lo-del-no");
+    if(no) no.onclick=function(){ try{ m.remove(); }catch(e){} };
+    if(go) go.onclick=function(){ if(inp&&inp.value==="DELETE"){ go.disabled=true; go.textContent="Deleting…"; deleteAccount("DELETE"); } else if(inp){ inp.style.borderColor="#e5484d"; } };
+    try{ inp.focus(); }catch(e){}
+  }
+  window.LifeOSPrivacyOps={ downloadData:downloadData, deleteAccount:deleteAccount, confirmDelete:confirmDelete };
+  function installAcct(){
+    var A=window.LifeOSAccounts; if(!A||typeof A.render!=="function") return false;
+    if(A.render.__priv64) return true;
+    var base=A.render.bind(A);
+    A.render=function(){ var r=base.apply(this,arguments);
+      try{ var vs=document.getElementById("view-surface");
+        if(vs && String(vs.innerHTML).indexOf("lo-privcard")<0){
+          vs.insertAdjacentHTML("beforeend",'<div class="lo-privcard"><h4>Privacy &amp; data</h4>'
+            +'<p>Your data, your controls — export a complete copy, read the policies, or erase the account. Policies v'+PV+'.</p>'
+            +'<div class="lo-pbtns"><button onclick="LifeOSPrivacyOps.downloadData()">⬇ Download my data</button>'
+            +'<button onclick="LifeOSPolicy.open(\'privacy\')">Privacy Policy</button>'
+            +'<button onclick="LifeOSPolicy.open(\'terms\')">Terms</button>'
+            +'<button class="danger" onclick="LifeOSPrivacyOps.confirmDelete()">Delete account &amp; data…</button></div></div>');
+        } }catch(e){}
+      return r; };
+    A.render.__priv64=true; return true;
+  }
+  css();
+  var __ps=[150,600,1800,3200]; for(var __pi=0;__pi<__ps.length;__pi++) setTimeout(installAcct,__ps[__pi]);
+  var __piv=setInterval(function(){ if(installAcct()) clearInterval(__piv); },3000);
+  if(document.readyState!=="loading") installAcct();
+})();
+
+/* ====================================================================
+   Block 65 — In-place task editing on the Ops Board ("adjust whatever
+   you create"). Every board card gains a ✎ Edit control beside ✓/★/✕;
+   it swaps the card body for a compact editor (title, due date,
+   energy, domain) with Save/Cancel. Enter saves, Esc cancels, title
+   autofocused. Saving writes state and re-renders (Blocks 61/63
+   repaint the anatomy + hero). Element is preserved (innerHTML swap
+   only) so the app's drag listeners stay wired. Pure patch logic is
+   exposed for the harness. API: window.LifeOSTaskEdit.
+   ==================================================================== */
+(function(){
+  var E=function(s){ return (''+(s==null?'':s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+  var CSS='#view-tasks #task-board .lo-ed-btn{background:none;border:none;color:#4A4A60;cursor:pointer;font-size:12px;padding:0;margin-left:2px}'
+    +'#view-tasks #task-board .lo-ed-btn:active{color:#D4FF3A}'
+    +'#view-tasks #task-board .task.lo-editing{cursor:default}'
+    +'#view-tasks #task-board .lo-ed{display:grid;grid-template-columns:1fr 1fr;gap:7px}'
+    +'#view-tasks #task-board .lo-ed .full{grid-column:1/-1}'
+    +'#view-tasks #task-board .lo-ed label{display:block;font-family:"JetBrains Mono",var(--mono,monospace);font-size:8.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#7A7A93;margin:0 0 3px}'
+    +'#view-tasks #task-board .lo-ed input,#view-tasks #task-board .lo-ed select{width:100%;box-sizing:border-box;background:rgba(255,255,255,.05);border:1px solid #2A2A3D;border-radius:8px;color:#F4F4FA;font-family:"Inter",var(--sans,sans-serif);font-size:12px;padding:7px 9px;outline:none}'
+    +'#view-tasks #task-board .lo-ed input:focus-visible,#view-tasks #task-board .lo-ed select:focus-visible{border-color:#D4FF3A;box-shadow:0 0 0 2px rgba(212,255,58,.25)}'
+    +'#view-tasks #task-board .lo-ed .lo-ed-a{display:flex;gap:7px;justify-content:flex-end;margin-top:2px}'
+    +'#view-tasks #task-board .lo-ed .lo-ed-a button{font-family:"Inter",var(--sans,sans-serif);font-weight:700;font-size:11px;padding:6px 13px;border-radius:8px;cursor:pointer}'
+    +'#view-tasks #task-board .lo-ed .lo-ed-save{background:#D4FF3A;border:1px solid #D4FF3A;color:#0A0A00}'
+    +'#view-tasks #task-board .lo-ed .lo-ed-save:active{filter:brightness(.9)}'
+    +'#view-tasks #task-board .lo-ed .lo-ed-cxl{background:transparent;border:1px solid #2A2A3D;color:#B8B8CC}';
+  function css(){ var el=document.getElementById("lo-tedit-css");
+    if(el){ if(el.textContent!==CSS) try{ el.textContent=CSS; }catch(e){} }
+    else if(document.head||document.documentElement){ el=document.createElement("style"); el.id="lo-tedit-css"; el.textContent=CSS; (document.head||document.documentElement).appendChild(el); } }
+  function apply(t,patch){
+    if(!t||typeof t!=="object") return t;
+    if(patch.title!=null){ var v=String(patch.title).trim(); if(v) t.title=v; }
+    if(patch.due!==undefined){ t.due=patch.due||undefined; if(!patch.due) delete t.due; }
+    if(patch.energy!==undefined){ if(patch.energy) t.energy=patch.energy; else delete t.energy; }
+    if(patch.domainId!==undefined){ if(patch.domainId) t.domainId=patch.domainId; else delete t.domainId; }
+    return t;
+  }
+  function save(id){
+    var el=cardEl(id); if(!el) return false;
+    var g=function(sel){ var n=el.querySelector(sel); return n?n.value:undefined; };
+    var patch={ title:g(".lo-ed-t"), due:g(".lo-ed-d"), energy:g(".lo-ed-e"), domainId:g(".lo-ed-dm") };
+    try{ var s=window.LifeOS.get(), arr=s.tasks||[];
+      for(var i=0;i<arr.length;i++){ if(arr[i].id===id){ apply(arr[i],patch); break; } }
+      window.LifeOS.set(s);
+    }catch(e){ return false; }
+    rerender(); return true;
+  }
+  function rerender(){ try{ if(window.Tasks&&window.Tasks.render) window.Tasks.render(); }catch(e){} }
+  function cardEl(id){
+    var b=document.getElementById("task-board"); if(!b||!b.querySelectorAll) return null;
+    var els=b.querySelectorAll(".task");
+    for(var i=0;i<els.length;i++){ var eid=els[i].dataset?els[i].dataset.id:els[i].getAttribute("data-id"); if(eid===id) return els[i]; }
+    return null;
+  }
+  function edit(id){
+    css();
+    var el=cardEl(id); if(!el) return false;
+    var s; try{ s=window.LifeOS.get(); }catch(e){ s={}; }
+    var t=null, arr=s.tasks||[];
+    for(var i=0;i<arr.length;i++){ if(arr[i].id===id){ t=arr[i]; break; } }
+    if(!t) return false;
+    var doms=s.domains||[], dOpts='<option value="">— no domain —</option>';
+    for(var d=0;d<doms.length;d++){ dOpts+='<option value="'+E(doms[d].id)+'"'+(t.domainId===doms[d].id?" selected":"")+'>'+E(doms[d].name||doms[d].id)+'</option>'; }
+    var eOpts=["","deep","light","admin"].map(function(x){ return '<option value="'+x+'"'+((t.energy||"")===x?" selected":"")+'>'+(x||"— energy —")+'</option>'; }).join("");
+    el.classList.add("lo-editing");
+    el.innerHTML='<div class="lo-ed">'
+      +'<div class="full"><label>Title</label><input class="lo-ed-t" value="'+E(t.title||"")+'" aria-label="Task title"></div>'
+      +'<div><label>Due</label><input class="lo-ed-d" type="date" value="'+E(t.due||"")+'" aria-label="Due date"></div>'
+      +'<div><label>Energy</label><select class="lo-ed-e" aria-label="Energy">'+eOpts+'</select></div>'
+      +'<div class="full"><label>Life domain</label><select class="lo-ed-dm" aria-label="Life domain">'+dOpts+'</select></div>'
+      +'<div class="full lo-ed-a"><button type="button" class="lo-ed-cxl" onclick="LifeOSTaskEdit.cancel()">Cancel</button>'
+      +'<button type="button" class="lo-ed-save" onclick="LifeOSTaskEdit.save(\''+E(id)+'\')">Save</button></div></div>';
+    var ti=el.querySelector(".lo-ed-t");
+    if(ti){ try{ ti.focus(); }catch(e){}
+      if(ti.addEventListener) ti.addEventListener("keydown",function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); save(id); } if(ev.key==="Escape"){ rerender(); } }); }
+    return true;
+  }
+  function paint(){
+    var b=document.getElementById("task-board"); if(!b||!b.querySelectorAll) return;
+    var els=b.querySelectorAll(".task");
+    for(var i=0;i<els.length;i++){ var el=els[i];
+      if(el.querySelector(".lo-ed")||el.querySelector(".lo-ed-btn")) continue;
+      var f=el.querySelector(".lo-tfoot"), id=el.dataset?el.dataset.id:el.getAttribute("data-id");
+      if(!f||!id) continue;
+      var x=f.querySelector(".x");
+      try{ (x||f).insertAdjacentHTML(x?"beforebegin":"beforeend",'<button class="lo-ed-btn" title="Edit task" aria-label="Edit task" onclick="LifeOSTaskEdit.edit(\''+E(id)+'\')">✎</button>'); }catch(e){}
+    }
+  }
+  window.LifeOSTaskEdit={ edit:edit, save:save, cancel:rerender, paint:paint, apply:apply, CSS:CSS };
+  function install(){
+    css();
+    var T=window.Tasks; if(!T||typeof T.render!=="function") return false;
+    if(T.__tedit65) return true; // object-level flag: survives later wrappers
+    var base=T.render.bind(T);
+    T.render=function(){ var r=base.apply(this,arguments); try{ if(this.boardMode) paint(); }catch(e){} return r; };
+    T.render.__tedit65=true; T.__tedit65=true; return true;
+  }
+  var __es=[140,520,1600,3100]; for(var __ei=0;__ei<__es.length;__ei++) setTimeout(install,__es[__ei]);
+  var __eiv=setInterval(function(){ if(install()) clearInterval(__eiv); },3000);
+  if(document.readyState!=="loading") install();
+})();
+
+/* ====================================================================
+   Block 66 — Design-system audit engine: automates the PRD FR-10.1
+   "pairwise drama test". window.LifeOSThemeAudit.run() sweeps every
+   theme pair across the 8 contract dimensions (type, canvas, chrome,
+   surface, controls, iconography, motion/texture, label truth) using
+   COMPUTED styles on the live DOM, restores the user's theme, and
+   returns {pairs, min, pass} — pass requires ≥6/8 deltas for EVERY
+   pair (Palmwave↔Bloom canonical). Pure pair-diff logic exposed for
+   the harness; run() requires a real browser (getComputedStyle).
+   ==================================================================== */
+(function(){
+  var THEMES=["palmwave","bloom","desertnight","sunny","reef","tahoe","lagoon"];
+  var DIMS=["type","canvas","chrome","surface","controls","iconography","motion","label"];
+  function gcs(el,ps){ try{ return el?getComputedStyle(el,ps||null):null; }catch(e){ return null; } }
+  function q(sel){ try{ return document.querySelector(sel); }catch(e){ return null; } }
+  function probe(theme){
+    if(typeof getComputedStyle!=="function"||!document.documentElement||!document.documentElement.setAttribute) return null;
+    var de=document.documentElement, prev=de.getAttribute("data-theme");
+    de.setAttribute("data-theme",theme);
+    try{ void (document.body&&document.body.offsetHeight); }catch(e){}
+    var body=document.body, h1=q("#tb-name")||q("h1"), main=q("#main"), top=q("#topbar")||q(".topbar"),
+        card=q("#main .card")||q(".cf-kpi")||q("#main .lr-wrap")||q(".lr-card"),
+        btn=q(".btn")||q("#tb-tabs .tb-tab")||q("button.tb-tab"),
+        railEm=q("#rail-theme .rt-tog em");
+    var bs=gcs(body), ds=gcs(de), out={
+      type:(bs?bs.fontFamily:"")+"|"+(h1&&gcs(h1)?gcs(h1).fontFamily:""),
+      canvas:(main&&gcs(main)?gcs(main).background:""),
+      chrome:(top&&gcs(top)?gcs(top).background:""),
+      surface:(card&&gcs(card)?gcs(card).borderRadius+"|"+gcs(card).boxShadow:""),
+      controls:(btn&&gcs(btn)?gcs(btn).borderRadius+"|"+gcs(btn).background:""),
+      iconography:(ds?ds.getPropertyValue("--icow")+"|"+ds.getPropertyValue("--ic-r"):""),
+      motion:(ds?ds.getPropertyValue("--ease"):"")+"|"+(gcs(body,"::after")?gcs(body,"::after").backgroundImage.slice(0,80):""),
+      label:(railEm&&railEm.textContent)?railEm.textContent.trim():""
+    };
+    if(prev==null) de.removeAttribute("data-theme"); else de.setAttribute("data-theme",prev);
+    return out;
+  }
+  function pairDelta(a,b){
+    var diff=[], same=[], skip=[];
+    for(var i=0;i<DIMS.length;i++){ var k=DIMS[i], va=a&&a[k], vb=b&&b[k];
+      if(!va&&!vb){ skip.push(k); continue; }
+      if(va!==vb) diff.push(k); else same.push(k); }
+    return { delta:diff.length, diff:diff, same:same, skipped:skip };
+  }
+  function run(){
+    if(typeof getComputedStyle!=="function") return { pass:false, error:"needs a live browser" };
+    var de=document.documentElement, prev=de.getAttribute("data-theme");
+    var snaps={}, i, j;
+    for(i=0;i<THEMES.length;i++) snaps[THEMES[i]]=probe(THEMES[i]);
+    if(prev==null) de.removeAttribute("data-theme"); else de.setAttribute("data-theme",prev);
+    try{ if(window.LifeOSThemeLabel&&LifeOSThemeLabel.sync) LifeOSThemeLabel.sync(); }catch(e){}
+    var pairs=[], min=8;
+    for(i=0;i<THEMES.length;i++) for(j=i+1;j<THEMES.length;j++){
+      var pd=pairDelta(snaps[THEMES[i]],snaps[THEMES[j]]);
+      pairs.push({ a:THEMES[i], b:THEMES[j], delta:pd.delta, same:pd.same, skipped:pd.skipped });
+      if(pd.delta<min) min=pd.delta; }
+    var res={ themes:THEMES.slice(), dims:DIMS.slice(), pairs:pairs, min:min, pass:min>=6, snaps:snaps };
+    try{ console.log("[LifeOSThemeAudit] pairs:"+pairs.length+" min delta:"+min+"/8 → "+(res.pass?"PASS":"FAIL")); }catch(e){}
+    return res;
+  }
+  window.LifeOSThemeAudit={ THEMES:THEMES, DIMS:DIMS, probe:probe, pairDelta:pairDelta, run:run };
 })();
 
 
