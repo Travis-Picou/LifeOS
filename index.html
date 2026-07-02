@@ -4568,9 +4568,20 @@
   window.LifeOSFlowMo={ series:series, svg:svg, html:html, paint:paint, install:install, ensure:ensure,
     setScope:function(s){ SCOPE=(s==="year")?"year":"month"; return SCOPE; },
     setOwner:function(o){ OWNER=(o==="Travis"||o==="Tan")?o:"Both"; return OWNER; }, CSS:CSS };
+  // GOTCHA 6 defense: the app's own money generations can REPLACE render
+  // after we wrap it (burying the wrap) — so paint is ALSO event-driven:
+  // burst on #/money hashchange and on any banner-tab click.
+  function kick(){ var d=[80,300,800,1600]; for(var i=0;i<d.length;i++) setTimeout(paint,d[i]); }
+  if(typeof window.addEventListener==="function"){
+    window.addEventListener("hashchange",function(){ if(String(location.hash||"").indexOf("money")>-1) kick(); });
+    document.addEventListener("click",function(ev){
+      var tb=ev.target&&ev.target.closest?ev.target.closest("#tb-tabs .tb-tab"):null;
+      if(tb&&String(location.hash||"").indexOf("money")>-1) kick();
+    },true);
+  }
   var __fs=[250,800,2000,3400]; for(var __fi=0;__fi<__fs.length;__fi++) setTimeout(install,__fs[__fi]);
   var __fiv=setInterval(function(){ if(install()) clearInterval(__fiv); },3000);
-  if(document.readyState!=="loading") install();
+  if(document.readyState!=="loading"){ install(); kick(); }
 })();
 
 /* ====================================================================
