@@ -4238,28 +4238,49 @@
 (function(){
   var THEMES=["palmwave","bloom","desertnight","sunny","reef","tahoe","lagoon"];
   var DIMS=["type","canvas","chrome","surface","controls","iconography","motion","label"];
+  var ZONES=["#topbar","aside#rail","#rail","#main","#ai-studio","#ai-panel","body"];
   function gcs(el,ps){ try{ return el?getComputedStyle(el,ps||null):null; }catch(e){ return null; } }
   function q(sel){ try{ return document.querySelector(sel); }catch(e){ return null; } }
-  function probe(theme){
-    if(typeof getComputedStyle!=="function"||!document.documentElement||!document.documentElement.setAttribute) return null;
-    var de=document.documentElement, prev=de.getAttribute("data-theme");
-    de.setAttribute("data-theme",theme);
-    try{ void (document.body&&document.body.offsetHeight); }catch(e){}
-    var body=document.body, h1=q("#tb-name")||q("h1"), main=q("#main"), top=q("#topbar")||q(".topbar"),
-        card=q("#main .card")||q(".cf-kpi")||q("#main .lr-wrap")||q(".lr-card"),
-        btn=q(".btn")||q("#tb-tabs .tb-tab")||q("button.tb-tab"),
-        railEm=q("#rail-theme .rt-tog em");
-    var bs=gcs(body), ds=gcs(de), out={
-      type:(bs?bs.fontFamily:"")+"|"+(h1&&gcs(h1)?gcs(h1).fontFamily:""),
-      canvas:(main&&gcs(main)?gcs(main).background:""),
-      chrome:(top&&gcs(top)?gcs(top).background:""),
-      surface:(card&&gcs(card)?gcs(card).borderRadius+"|"+gcs(card).boxShadow:""),
-      controls:(btn&&gcs(btn)?gcs(btn).borderRadius+"|"+gcs(btn).background:""),
+  function targets(){ var out=[document.documentElement]; for(var i=0;i<ZONES.length;i++){ var e=q(ZONES[i]); if(e&&out.indexOf(e)<0) out.push(e); } return out; }
+  // Apply a theme VISUALLY exactly the way the picker does (design tokens on
+  // root + zones, plus html[data-theme]) — but with ZERO state/localStorage
+  // writes, so the audit is side-effect-free and fully restorable.
+  function applyVisual(id){
+    var TV=window.LifeOSThemes&&window.LifeOSThemes.vars, m=TV&&TV[id]; if(!m) return false;
+    var els=targets();
+    for(var i=0;i<els.length;i++){ for(var k in m){ try{ els[i].style.setProperty(k,m[k]); }catch(e){} } }
+    try{ document.documentElement.setAttribute("data-theme",id); }catch(e){}
+    return true;
+  }
+  function measure(theme){
+    var body=document.body, de=document.documentElement,
+        h1=q("#tb-name")||q("h1"), main=q("#main"), top=q("#topbar")||q(".topbar"),
+        rail=q("aside#rail")||q("#rail"),
+        card=q(".lr-card")||q("#main .card")||q(".cf-kpi")||q(".mx-card")||q(".lr-wrap"),
+        btn=q(".btn")||q("#tb-tabs .tb-tab.on")||q("#tb-tabs .tb-tab")||q("button");
+    var NAMES=(window.LifeOSThemeLabel&&window.LifeOSThemeLabel.NAMES)||{};
+    var ds=gcs(de), bs=gcs(body);
+    return {
+      type:(bs?bs.fontFamily:"")+"|"+(h1&&gcs(h1)?gcs(h1).fontFamily:"")+"|"+(ds?ds.getPropertyValue("--display"):""),
+      canvas:[(bs?bs.background:""),(main&&gcs(main)?gcs(main).background:""),(gcs(body,"::before")?gcs(body,"::before").backgroundImage.slice(0,120):"")].join("§"),
+      chrome:(top&&gcs(top)?gcs(top).background+"|"+gcs(top).borderBottomColor:"")+"§"+(rail&&gcs(rail)?gcs(rail).background:""),
+      surface:(card&&gcs(card)?gcs(card).borderRadius+"|"+gcs(card).boxShadow+"|"+gcs(card).borderColor:"")+"|"+(ds?ds.getPropertyValue("--r-md")+ds.getPropertyValue("--e-2"):""),
+      controls:(btn&&gcs(btn)?gcs(btn).borderRadius+"|"+gcs(btn).background+"|"+gcs(btn).borderColor:"")+"|"+(ds?ds.getPropertyValue("--accent")+ds.getPropertyValue("--r-sm"):""),
       iconography:(ds?ds.getPropertyValue("--icow")+"|"+ds.getPropertyValue("--ic-r"):""),
       motion:(ds?ds.getPropertyValue("--ease"):"")+"|"+(gcs(body,"::after")?gcs(body,"::after").backgroundImage.slice(0,80):""),
-      label:(railEm&&railEm.textContent)?railEm.textContent.trim():""
+      label:NAMES[theme]||theme
     };
-    if(prev==null) de.removeAttribute("data-theme"); else de.setAttribute("data-theme",prev);
+  }
+  function probe(theme){
+    if(typeof getComputedStyle!=="function"||!document.documentElement||!document.documentElement.setAttribute) return null;
+    var els=targets(), saved=[], i;
+    for(i=0;i<els.length;i++) saved.push(els[i].style.cssText);
+    var prev=document.documentElement.getAttribute("data-theme");
+    if(!applyVisual(theme)) return null;
+    try{ void (document.body&&document.body.offsetHeight); }catch(e){}
+    var out=measure(theme);
+    for(i=0;i<els.length;i++){ try{ els[i].style.cssText=saved[i]; }catch(e){} }
+    if(prev==null) document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme",prev);
     return out;
   }
   function pairDelta(a,b){
@@ -4271,21 +4292,29 @@
   }
   function run(){
     if(typeof getComputedStyle!=="function") return { pass:false, error:"needs a live browser" };
-    var de=document.documentElement, prev=de.getAttribute("data-theme");
-    var snaps={}, i, j;
-    for(i=0;i<THEMES.length;i++) snaps[THEMES[i]]=probe(THEMES[i]);
-    if(prev==null) de.removeAttribute("data-theme"); else de.setAttribute("data-theme",prev);
-    try{ if(window.LifeOSThemeLabel&&LifeOSThemeLabel.sync) LifeOSThemeLabel.sync(); }catch(e){}
+    var de=document.documentElement, prevAttr=de.getAttribute("data-theme");
+    var els=targets(), saved=[], i, j;
+    for(i=0;i<els.length;i++) saved.push(els[i].style.cssText);
+    var snaps={};
+    for(i=0;i<THEMES.length;i++){ applyVisual(THEMES[i]); try{ void document.body.offsetHeight; }catch(e){} snaps[THEMES[i]]=measure(THEMES[i]); }
+    for(i=0;i<els.length;i++){ try{ els[i].style.cssText=saved[i]; }catch(e){} }
+    if(prevAttr==null) de.removeAttribute("data-theme"); else de.setAttribute("data-theme",prevAttr);
+    try{ void document.body.offsetHeight; }catch(e){}
     var pairs=[], min=8;
     for(i=0;i<THEMES.length;i++) for(j=i+1;j<THEMES.length;j++){
       var pd=pairDelta(snaps[THEMES[i]],snaps[THEMES[j]]);
       pairs.push({ a:THEMES[i], b:THEMES[j], delta:pd.delta, same:pd.same, skipped:pd.skipped });
       if(pd.delta<min) min=pd.delta; }
-    var res={ themes:THEMES.slice(), dims:DIMS.slice(), pairs:pairs, min:min, pass:min>=6, snaps:snaps };
-    try{ console.log("[LifeOSThemeAudit] pairs:"+pairs.length+" min delta:"+min+"/8 → "+(res.pass?"PASS":"FAIL")); }catch(e){}
+    // truthful-picker check on the CURRENT applied system (FR-10.1h)
+    var truth=null;
+    try{ var em=q("#rail-theme .rt-tog em"), NAMES=(window.LifeOSThemeLabel&&LifeOSThemeLabel.NAMES)||{};
+      var curId=localStorage.getItem("lifeos.xtheme");
+      if(em&&curId){ truth=(em.textContent||"").trim()===(NAMES[curId]||curId); } }catch(e){}
+    var res={ themes:THEMES.slice(), dims:DIMS.slice(), pairs:pairs, min:min, labelTruthful:truth, pass:min>=6&&truth!==false, snaps:snaps };
+    try{ console.log("[LifeOSThemeAudit] pairs:"+pairs.length+" min:"+min+"/8 labelTruthful:"+truth+" → "+(res.pass?"PASS":"FAIL")); }catch(e){}
     return res;
   }
-  window.LifeOSThemeAudit={ THEMES:THEMES, DIMS:DIMS, probe:probe, pairDelta:pairDelta, run:run };
+  window.LifeOSThemeAudit={ THEMES:THEMES, DIMS:DIMS, probe:probe, applyVisual:applyVisual, measure:measure, pairDelta:pairDelta, run:run };
 })();
 
 
