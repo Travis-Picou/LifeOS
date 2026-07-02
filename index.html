@@ -32,6 +32,10 @@
   var SB_KEY="sb_publishable_mnbOHGZUqYpS3rb8O4qVYQ_KIjfWboj";
   var SB_CDN="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
   var client=null, syncing=false, lastPushed="";
+  // Auth links (confirm/recovery) land with tokens in the URL hash; the app's hash
+  // router can clobber them before the Supabase client loads. Stash synchronously.
+  var AUTHHASH="";
+  try{ var __h=String(location.hash||""); if(/access_token=|type=recovery|type=signup|error_code=/.test(__h)){ AUTHHASH=__h.replace(/^#\/?/,""); try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){ try{ location.hash=""; }catch(x){} } } }catch(e){}
 
   function loadScript(src){ return new Promise(function(res,rej){ if(window.supabase&&window.supabase.createClient) return res(); var s=document.createElement("script"); s.src=src; s.onload=function(){res();}; s.onerror=function(){rej(new Error("cdn"));}; (document.head||document.documentElement).appendChild(s); }); }
   function getClient(){ return loadScript(SB_CDN).then(function(){ if(!client) client=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,storageKey:"lifeos.auth"}}); return client; }); }
@@ -119,12 +123,17 @@
       +'<input id="lg-pw" type="password" autocomplete="'+(mode==="up"?"new-password":"current-password")+'" placeholder="Password">'
       +'<button id="lg-go">'+(mode==="up"?"Create account":"Sign in")+'</button>'
       +'<div id="lg-err" class="lg-err"></div>'
-      +'<div class="lg-toggle">'+(mode==="up"?'Already have an account? <a id="lg-sw">Sign in</a>':'New here? <a id="lg-sw">Create an account</a>')+'</div>'
+      +'<div class="lg-toggle">'+(mode==="up"?'Already have an account? <a id="lg-sw">Sign in</a>':'New here? <a id="lg-sw">Create an account</a> \u00b7 <a id="lg-fp">Forgot password?</a>')+'</div>'
       +'<div class="lg-toggle" style="margin-top:6px">Have a LifeOS export? <a id="lg-imp">Import it</a></div>';
     var em=card.querySelector("#lg-em"), pw=card.querySelector("#lg-pw"), go=card.querySelector("#lg-go"), err=card.querySelector("#lg-err"), sw=card.querySelector("#lg-sw"), imp=card.querySelector("#lg-imp");
     var pending=null;
     try{ em.focus(); }catch(e){}
     sw.onclick=function(){ form(ov, mode==="up"?"in":"up"); };
+    var fp=card.querySelector("#lg-fp");
+    if(fp) fp.onclick=function(){ var fe=(em.value||"").trim(); if(!fe){ err.textContent="Enter your email above first, then tap \u2018Forgot password?\u2019."; return; }
+      getClient().then(function(c){ return c.auth.resetPasswordForEmail(fe,{redirectTo:((location.origin&&location.origin.indexOf("http")===0)?location.origin:"https://www.lifeopssys.com")}); })
+        .then(function(r){ err.style.color=(r&&r.error)?"#ff8a80":"#9fd5a5"; err.textContent=(r&&r.error)?((r.error.message)||"Couldn\u2019t send the reset."):"Reset link sent \u2014 open it and you\u2019ll set a new password."; })
+        .catch(function(){ err.style.color="#ff8a80"; err.textContent="Couldn\u2019t reach the server."; }); };
     imp.onclick=function(){
       var inp=document.createElement("input"); inp.type="file"; inp.accept=".json,application/json";
       inp.onchange=function(){ var f=inp.files&&inp.files[0]; if(!f)return; var rd=new FileReader();
@@ -142,13 +151,16 @@
       if(mode==="up" && p.length<6){ err.textContent="Password must be at least 6 characters."; return; }
       go.disabled=true; go.textContent=mode==="up"?"Creating…":"Signing in…";
       getClient().then(function(c){
-        var op = mode==="up" ? c.auth.signUp({email:e,password:p}) : c.auth.signInWithPassword({email:e,password:p});
+        var op = mode==="up" ? c.auth.signUp({email:e,password:p,options:{emailRedirectTo:((location.origin&&location.origin.indexOf("http")===0)?location.origin:"https://www.lifeopssys.com")}}) : c.auth.signInWithPassword({email:e,password:p});
         return op.then(function(r){
           go.disabled=false; go.textContent=mode==="up"?"Create account":"Sign in";
           if(r.error){ err.textContent=r.error.message||"Something went wrong."; return; }
           var sess=r.data && r.data.session, usr=r.data && r.data.user;
           if(sess && usr){ dismiss(ov); startSync(c, usr.id, pending); }
-          else if(mode==="up"){ err.style.color="#9fd5a5"; err.textContent="Check your email to confirm, then sign in."; }
+          else if(mode==="up"){
+            if(usr && usr.identities && usr.identities.length===0){ form(ov,"in"); try{ var em2=ov.querySelector("#lg-em"); if(em2) em2.value=e; var er2=ov.querySelector("#lg-err"); if(er2) er2.textContent="That email already has an account — sign in, or tap \u2018Forgot password?\u2019."; }catch(ex){} return; }
+            waitForConfirm(ov, c, e, p, pending);
+          }
           else { err.textContent="Could not sign in — check your details."; }
         });
       }).catch(function(){ go.disabled=false; go.textContent=mode==="up"?"Create account":"Sign in"; err.textContent="Couldn’t reach the server. Check your connection."; });
@@ -157,6 +169,41 @@
     [em,pw].forEach(function(el){ el.addEventListener("keydown",function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); submit(); } }); });
   }
 
+  function waitForConfirm(ov, c, e, p, pending){
+    var card=ov.querySelector(".lg-card"); if(!card) return;
+    var safeE=(""+e).replace(/[&<>"]/g,"");
+    card.innerHTML='<div class="lg-logo">Life<b>OS</b></div><div class="lg-ring"></div>'
+      +'<div class="lg-sub">We sent a confirmation link to<br><b style="color:#f4efe6">'+safeE+'</b><br><br>Open it on any device \u2014 the moment your email is confirmed, this page signs you in automatically.</div>'
+      +'<div id="lg-err" class="lg-err"></div>'
+      +'<div class="lg-toggle"><a id="lg-rs">Resend email</a> \u00b7 <a id="lg-bk">Back to sign in</a></div>';
+    var err=card.querySelector("#lg-err"), rs=card.querySelector("#lg-rs"), bk=card.querySelector("#lg-bk");
+    var stop=false;
+    if(bk) bk.onclick=function(){ stop=true; form(ov,"in"); };
+    if(rs) rs.onclick=function(){ try{ c.auth.resend({type:"signup",email:e,options:{emailRedirectTo:((location.origin&&location.origin.indexOf("http")===0)?location.origin:"https://www.lifeopssys.com")}}).then(function(r){ err.style.color=(r&&r.error)?"#ff8a80":"#9fd5a5"; err.textContent=(r&&r.error)?((r.error.message)||"Couldn\u2019t resend."):"Sent \u2014 check your inbox (and spam)."; }); }catch(ex){} };
+    var n=0;
+    (function poll(){ if(stop) return; n++;
+      c.auth.signInWithPassword({email:e,password:p}).then(function(r){
+        if(stop) return;
+        var sess=r.data&&r.data.session, usr=r.data&&r.data.user;
+        if(sess&&usr){ stop=true; dismiss(ov); startSync(c, usr.id, pending); return; }
+        if(n<200) setTimeout(poll,6000); else { err.style.color="#ff8a80"; err.textContent="Still waiting \u2014 resend the email, or come back and sign in later."; }
+      }).catch(function(){ if(!stop && n<200) setTimeout(poll,6000); });
+    })();
+  }
+  function recoveryForm(ov, c, sess){
+    css(); var card=ov.querySelector(".lg-card"); if(!card) return;
+    card.innerHTML='<div class="lg-logo">Life<b>OS</b></div>'
+      +'<div class="lg-sub">Welcome back \u2014 set a new password for your account.</div>'
+      +'<input id="lg-np" type="password" autocomplete="new-password" placeholder="New password (min 6 chars)">'
+      +'<button id="lg-go">Set password &amp; enter</button><div id="lg-err" class="lg-err"></div>';
+    var np=card.querySelector("#lg-np"), go=card.querySelector("#lg-go"), err=card.querySelector("#lg-err");
+    function submit(){ var p=np.value||""; if(p.length<6){ err.textContent="Password must be at least 6 characters."; return; }
+      go.disabled=true; go.textContent="Saving\u2026";
+      c.auth.updateUser({password:p}).then(function(r){ go.disabled=false; go.textContent="Set password & enter"; if(r&&r.error){ err.textContent=(r.error.message)||"Couldn\u2019t set the password."; return; } window.__lgRecovery=false; dismiss(ov); startSync(c, sess.user.id); }); }
+    if(go) go.onclick=submit;
+    if(np&&np.addEventListener) np.addEventListener("keydown",function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); submit(); } });
+    try{ np.focus(); }catch(e){}
+  }
   function inject(){
     if(!document.body || !(document.getElementById("app")||document.getElementById("main")||window.Store)) return false;
     // Local / offline use (file:// or localhost): skip cloud auth, run on localStorage only.
@@ -167,9 +214,16 @@
     ov.innerHTML='<div class="lg-card"><div class="lg-ring"></div><div class="lg-logo">Life<b>OS</b></div><div class="lg-sub">Connecting…</div></div>';
     document.body.appendChild(ov);
     getClient().then(function(c){
-      return c.auth.getSession().then(function(r){
+      var pre=Promise.resolve(null);
+      if(AUTHHASH){
+        var q={}; AUTHHASH.split("&").forEach(function(kv){ var pr=kv.split("="); if(pr[0]) q[decodeURIComponent(pr[0])]=decodeURIComponent(pr[1]||""); });
+        if(q.access_token && q.refresh_token){ pre=c.auth.setSession({access_token:q.access_token,refresh_token:q.refresh_token}).catch(function(){ return null; }); }
+        if(q.type==="recovery") window.__lgRecovery=true;
+        AUTHHASH="";
+      }
+      return pre.then(function(){ return c.auth.getSession(); }).then(function(r){
         var sess=r.data && r.data.session;
-        if(sess && sess.user){ dismiss(ov); startSync(c, sess.user.id); }
+        if(sess && sess.user){ if(window.__lgRecovery){ recoveryForm(ov, c, sess); } else { dismiss(ov); startSync(c, sess.user.id); } }
         else { form(ov,"in"); }
       });
     }).catch(function(){ form(ov,"in"); });
@@ -3639,7 +3693,7 @@
 })();
 
 
-/* deploy-nonce 1782952854 */</script>
+/* deploy-nonce 1782954738 */</script>
 
   <div id="__bundler_thumbnail">
   <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
